@@ -1,21 +1,21 @@
-import React, { useState } from 'react';
-import { signup } from '../api/api';
+import React, { useState } from "react";
+import { signup } from "../api/api";
 
 const SignupModal = ({ onClose }) => {
-  const [userId, setUserId] = useState('');
-  const [nickname, setNickname] = useState('');
-  const [password, setPassword] = useState('');
+  const [userId, setUserId] = useState("");
+  const [nickname, setNickname] = useState("");
+  const [password, setPassword] = useState("");
 
-const handleSignup = async () => {
-  const { success, error } = await signup({ userId, password, nickname });
-  if (!success) {
-    if (error === 'DUPLICATE') alert('ID 또는 닉네임 중복');
-    else alert('가입 실패: ' + error);
-    return;
-  }
-  alert('가입 완료! 로그인 해주세요.');
-  onClose();
-};
+  const handleSignup = async () => {
+    const { success, error } = await signup({ userId, password, nickname });
+    if (!success) {
+      if (error === "DUPLICATE") alert("ID 또는 닉네임 중복");
+      else alert("가입 실패: " + error);
+      return;
+    }
+    alert("가입 완료! 로그인 해주세요.");
+    onClose();
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -60,6 +60,3 @@ const handleSignup = async () => {
 };
 
 export default SignupModal;
-
-
-

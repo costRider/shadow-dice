@@ -1,14 +1,11 @@
-import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import LoginScreen from './screens/LoginScreen';
-import LobbyScreen from './screens/LobbyScreen';
-import GameLobby from './screens/GameLobby';
-import GameScreen from './screens/GameScreen';
-import { UserProvider } from './context/UserContext';
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import LoginScreen from "./screens/LoginScreen";
+import LobbyScreen from "./screens/LobbyScreen";
+import GameLobby from "./screens/GameLobby";
+import GameScreen from "./screens/GameScreen";
+import { UserProvider } from "./context/UserContext";
 
 function App() {
-  
-  
   return (
     <UserProvider>
       <div className="App">
@@ -20,7 +17,7 @@ function App() {
             <Route path="/game" element={<GameScreen />} />
           </Routes>
         </Router>
-      </div>  
+      </div>
     </UserProvider>
   );
 }

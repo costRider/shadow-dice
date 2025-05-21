@@ -1,20 +1,19 @@
-import React, { useState, useContext } from 'react';
-import { createRoomAPI } from '../api/rooms';
-import { UserContext } from '../context/UserContext';
-
+import React, { useState, useContext } from "react";
+import { createRoomAPI } from "../api/rooms";
+import { UserContext } from "../context/UserContext";
 
 const CreateRoomPopup = ({ onClose, onCreate }) => {
   const { user } = useContext(UserContext);
 
-  const [roomName, setRoomName] = useState('');
+  const [roomName, setRoomName] = useState("");
   const [maxPlayers, setMaxPlayers] = useState(4);
-  const [selectedMap, setSelectedMap] = useState('기본맵');
+  const [selectedMap, setSelectedMap] = useState("기본맵");
   const [isPrivate, setIsPrivate] = useState(false);
-  const [password, setPassword] = useState('');
-  
-   const handleSubmit = async () => {
+  const [password, setPassword] = useState("");
+
+  const handleSubmit = async () => {
     if (!roomName || maxPlayers < 2) {
-      alert('방 제목과 인원을 확인해주세요.');
+      alert("방 제목과 인원을 확인해주세요.");
       return;
     }
 
@@ -23,20 +22,20 @@ const CreateRoomPopup = ({ onClose, onCreate }) => {
       map: selectedMap,
       maxPlayers,
       isPrivate,
-      password: isPrivate ? password : '',
+      password: isPrivate ? password : "",
       hostId: user.id,
     };
 
     try {
       const res = await createRoomAPI(newRoom);
       if (res.room) {
-        console.log('보내는 room 데이터:', newRoom);
+        console.log("보내는 room 데이터:", newRoom);
 
         onCreate(res.room); // 부모에서 목록 갱신
       }
     } catch (err) {
-      console.log('보내는 room 데이터:', newRoom);
-      console.error('방 생성 실패', err);
+      console.log("보내는 room 데이터:", newRoom);
+      console.error("방 생성 실패", err);
     }
   };
   // 방 생성 후 부모 컴포넌트에 알림
@@ -66,7 +65,11 @@ const CreateRoomPopup = ({ onClose, onCreate }) => {
         >
           {[...Array(7)].map((_, i) => {
             const num = i + 2;
-            return <option key={num} value={num}>{num}명</option>;
+            return (
+              <option key={num} value={num}>
+                {num}명
+              </option>
+            );
           })}
         </select>
       </div>
@@ -75,7 +78,9 @@ const CreateRoomPopup = ({ onClose, onCreate }) => {
       <div className="mb-3">
         <label className="block mb-1 text-sm">맵 선택</label>
         <button
-          onClick={() => setSelectedMap(selectedMap === '기본맵' ? '숲속맵' : '기본맵')}
+          onClick={() =>
+            setSelectedMap(selectedMap === "기본맵" ? "숲속맵" : "기본맵")
+          }
           className="w-full px-3 py-2 border rounded bg-gray-100 hover:bg-gray-200"
         >
           선택된 맵: {selectedMap}
@@ -87,13 +92,13 @@ const CreateRoomPopup = ({ onClose, onCreate }) => {
         <label className="block mb-1 text-sm">공개 여부</label>
         <div className="flex gap-2">
           <button
-            className={`flex-1 border rounded py-2 ${!isPrivate ? 'bg-blue-500 text-white' : 'bg-gray-100'}`}
+            className={`flex-1 border rounded py-2 ${!isPrivate ? "bg-blue-500 text-white" : "bg-gray-100"}`}
             onClick={() => setIsPrivate(false)}
           >
             공개
           </button>
           <button
-            className={`flex-1 border rounded py-2 ${isPrivate ? 'bg-blue-500 text-white' : 'bg-gray-100'}`}
+            className={`flex-1 border rounded py-2 ${isPrivate ? "bg-blue-500 text-white" : "bg-gray-100"}`}
             onClick={() => setIsPrivate(true)}
           >
             비공개

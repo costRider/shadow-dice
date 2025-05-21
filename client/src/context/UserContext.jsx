@@ -1,11 +1,11 @@
-import React, { createContext, useState, useEffect, useCallback } from 'react';
-import { updateUser as apiUpdateUser } from '../api/user';
+import React, { createContext, useState, useEffect, useCallback } from "react";
+import { updateUser as apiUpdateUser } from "../api/user";
 
 export const UserContext = createContext({
   user: null,
   setUser: () => {},
   markDirty: () => {},
-  flush: () => {}
+  flush: () => {},
 });
 
 export const UserProvider = ({ children }) => {
@@ -15,7 +15,7 @@ export const UserProvider = ({ children }) => {
   // 1) user 변경
   const setUser = useCallback((newUser) => {
     _setUser(newUser);
-    setDirty(true);          // 변경 감지
+    setDirty(true); // 변경 감지
   }, []);
 
   // 2) 외부에서 “더티 표시”만 할 때
@@ -24,12 +24,15 @@ export const UserProvider = ({ children }) => {
   // 3) 15분마다, 혹은 dirty일 때 DB에 반영
   useEffect(() => {
     if (!user) return;
-    const interval = setInterval(async () => {
-      if (dirty) {
-        await apiUpdateUser(user);
-        setDirty(false);
-      }
-    }, 1000 * 60 * 15); // 15분
+    const interval = setInterval(
+      async () => {
+        if (dirty) {
+          await apiUpdateUser(user);
+          setDirty(false);
+        }
+      },
+      1000 * 60 * 15,
+    ); // 15분
     return () => clearInterval(interval);
   }, [user, dirty]);
 

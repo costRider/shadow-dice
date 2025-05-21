@@ -1,17 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 
 const PasswordPopup = ({ onClose, onSubmit }) => {
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
 
   const handleSubmit = () => {
     onSubmit(input);
-    setInput('');
+    setInput("");
   };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
       <div className="bg-white w-[300px] p-6 rounded-lg shadow-xl">
-        <h2 className="text-lg font-semibold mb-4 text-center">🔒 비밀번호 입력</h2>
+        <h2 className="text-lg font-semibold mb-4 text-center">
+          🔒 비밀번호 입력
+        </h2>
         <input
           type="password"
           placeholder="비밀번호"

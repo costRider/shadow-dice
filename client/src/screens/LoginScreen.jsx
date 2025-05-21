@@ -1,36 +1,36 @@
-import { useContext } from 'react';
-import React, { useState } from 'react';
-import { loginUser } from '../api/api';
-import { useNavigate } from 'react-router-dom';
-import SignupModal from '../components/SignupModal';
-import { UserContext } from '../context/UserContext';
+import { useContext } from "react";
+import React, { useState } from "react";
+import { loginUser } from "../api/api";
+import { useNavigate } from "react-router-dom";
+import SignupModal from "../components/SignupModal";
+import { UserContext } from "../context/UserContext";
 
 const LoginScreen = () => {
-  const [userId, setUserId] = useState('');
-  const [password, setPassword] = useState('');
+  const [userId, setUserId] = useState("");
+  const [password, setPassword] = useState("");
   const [showSignup, setShowSignup] = useState(false);
   const navigate = useNavigate();
   const { setUser } = useContext(UserContext);
 
   const handleLogin = async () => {
     if (!userId || !password) {
-      alert('ID와 비밀번호를 입력해주세요.');
+      alert("ID와 비밀번호를 입력해주세요.");
       return;
     }
 
     try {
-      const { success,user } = await loginUser(userId, password); 
-      
-      if(success && user){
-        console.log('✅ 로그인 성공한 user:', user);
-        setUser(user);    
-        navigate('/lobby'); 
-      }else{
-        console.log('❌ 로그인 실패:', user);
-        alert('로그인 실패: ' + (user.message || ''));        
-      }       
+      const { success, user } = await loginUser(userId, password);
+
+      if (success && user) {
+        console.log("✅ 로그인 성공한 user:", user);
+        setUser(user);
+        navigate("/lobby");
+      } else {
+        console.log("❌ 로그인 실패:", user);
+        alert("로그인 실패: " + (user.message || ""));
+      }
     } catch (err) {
-      alert('로그인 실패: ' + (err.message));
+      alert("로그인 실패: " + err.message);
     }
   };
 

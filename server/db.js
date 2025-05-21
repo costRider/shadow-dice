@@ -1,12 +1,12 @@
-import Database from 'better-sqlite3';
-import path from 'path';
+import Database from "better-sqlite3";
+import path from "path";
 
-const dbFile = path.resolve(process.cwd(), 'data', 'userdata.db');
+const dbFile = path.resolve(process.cwd(), "data", "userdata.db");
 const db = new Database(dbFile);
 
 // users 테이블 생성
-db
-  .prepare(`
+db.prepare(
+  `
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
       password TEXT NOT NULL,
@@ -16,11 +16,12 @@ db
       characters TEXT,
       createdAt TEXT
     )
-  `)
-  .run();
+  `,
+).run();
 
-  // server/db.js 
-db.prepare(`
+// server/db.js
+db.prepare(
+  `
   CREATE TABLE IF NOT EXISTS rooms (
     id TEXT PRIMARY KEY,
     title TEXT NOT NULL,
@@ -32,9 +33,11 @@ db.prepare(`
     status TEXT NOT NULL,
     createdAt TEXT NOT NULL
   )
-`).run();
+`,
+).run();
 
-db.prepare(`
+db.prepare(
+  `
   CREATE TABLE IF NOT EXISTS room_players (
     roomId TEXT NOT NULL,
     userId TEXT NOT NULL,
@@ -42,7 +45,7 @@ db.prepare(`
     selectedCharacter TEXT,
     PRIMARY KEY(roomId, userId)
   )
-`).run();
-
+`,
+).run();
 
 export default db;

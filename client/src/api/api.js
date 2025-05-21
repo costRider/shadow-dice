@@ -1,11 +1,11 @@
-const API_BASE = 'http://localhost:4000/api/auth';
+const API_BASE = "http://localhost:4000/api/auth";
 
 // 가입 api
 export async function signup({ userId, password, nickname }) {
   const res = await fetch(`${API_BASE}/signup`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ userId, password, nickname })
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ userId, password, nickname }),
   });
   return res.json();
 }
@@ -13,12 +13,12 @@ export async function signup({ userId, password, nickname }) {
 // 로그인 api
 export async function loginUser(userId, password) {
   const res = await fetch(`${API_BASE}/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ userId, password })
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ userId, password }),
   });
 
-   const data = await res.json();
+  const data = await res.json();
 
   if (!res.ok) {
     const errorData = await res.json();
