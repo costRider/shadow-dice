@@ -7,6 +7,7 @@ import {
     startRoom,
     // optionally: leaveRoom
 } from '@/services/rooms';
+import { updateUserStatus } from '@/services/user';
 
 /**
  * useRooms 훅: 방 목록 조회 및 조작 로직을 관리합니다.
@@ -22,6 +23,8 @@ export default function useRooms() {
         setError(null);
         try {
             const list = await getRooms();
+            console.log('🧪 getRooms 결과:', list);
+            console.log('🧪 isArray?', Array.isArray(list));
             setRooms(list);
         } catch (err) {
             console.error('fetchAll rooms failed:', err);
@@ -36,6 +39,7 @@ export default function useRooms() {
         setError(null);
         try {
             const newRoom = await createRoom(roomData);
+            await updateUserStatus(user.id, 'IN_ROOM');
             setRooms(prev => [...prev, newRoom]);
             return newRoom;
         } catch (err) {
@@ -49,6 +53,7 @@ export default function useRooms() {
     const join = useCallback(async (roomId, userId) => {
         setError(null);
         try {
+            await updateUserStatus(userId, 'IN_ROOM');
             const updatedRoom = await joinRoom(roomId, userId);
             setRooms(prev => prev.map(r => r.id === roomId ? updatedRoom : r));
             return updatedRoom;

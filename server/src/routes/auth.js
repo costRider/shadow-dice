@@ -1,5 +1,5 @@
 import express from "express";
-import { createUser, getUserById } from "../userModel.js";
+import { createUser, getUserById } from "../services/userModel.js";
 
 const router = express.Router();
 
@@ -17,10 +17,8 @@ router.post("/signup", (req, res) => {
 
 // 로그인
 router.post("/login", (req, res) => {
-  console.log("로그인 요청:", req.body);
   const { userId, password } = req.body;
   const user = getUserById(userId);
-  console.log("로그인 시도한 사용자:", user);
   if (!user || user.password !== password)
     return res.status(401).json({ message: "ID 또는 비밀번호 오류" });
 

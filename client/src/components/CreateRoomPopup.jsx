@@ -4,7 +4,7 @@ import { UserContext } from "@/context/UserContext";
 
 const CreateRoomPopup = ({ onClose, onCreate }) => {
   const { user } = useContext(UserContext);
-  const { createRoom } = useRooms();
+  const { create } = useRooms();
 
   const [roomName, setRoomName] = useState("");
   const [maxPlayers, setMaxPlayers] = useState(4);
@@ -28,15 +28,11 @@ const CreateRoomPopup = ({ onClose, onCreate }) => {
     };
 
     try {
-      const { room, error } = await createRoom(newRoom);
+      // create(data, userId) 호출
+      const created = await create(newRoomData, user.id);
 
-      if (error) {
-        alert("방 생성 실패: " + error);
-        return;
-      }
-
-      console.log("방 생성 성공:", room);
-      onCreate(room);
+      console.log("방 생성 성공:", created);
+      onCreate(created);
     } catch (err) {
       console.error("방 생성 중 예외 발생:", err);
       alert("방 생성 중 오류가 발생했습니다.");

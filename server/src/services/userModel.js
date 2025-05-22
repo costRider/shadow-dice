@@ -1,4 +1,4 @@
-import db from "./db.js";
+import db from "../config/db.js";
 
 export function createUser({ id, password, nickname }) {
   const now = new Date().toISOString();
@@ -34,6 +34,7 @@ export function createUser({ id, password, nickname }) {
 
 export function getUserById(id) {
   const row = db.prepare("SELECT * FROM users WHERE id = ?").get(id);
+  console.log("getUserById", row);
   if (!row) return null;
   return {
     ...row,

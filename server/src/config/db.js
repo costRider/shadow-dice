@@ -1,9 +1,13 @@
 import Database from "better-sqlite3";
 import path from "path";
+import { fileURLToPath } from 'url';
 
-const dbFile = path.resolve(process.cwd(), "data", "userdata.db");
-const db = new Database(dbFile);
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const DB_PATH = path.resolve(__dirname, '../../data/userdata.db');
 
+
+const db = new Database(DB_PATH, { verbose: console.log });
 // users 테이블 생성
 db.prepare(
   `

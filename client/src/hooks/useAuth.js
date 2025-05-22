@@ -2,12 +2,14 @@
 import { useContext, useCallback } from 'react';
 import { UserContext } from '@/context/UserContext';
 import { loginUser, signupUser, logoutUser } from '@/services/auth';
+import { updateUserStatus } from '@/services/user';
 
 export default function useAuth() {
     const { user, setUser, flush } = useContext(UserContext);
 
     const login = useCallback(async (userid, password) => {
         const data = await loginUser(userid, password);
+        await updateUserStatus(data.id, 'LOBBY');
         setUser(data);
         return data;
     }, [setUser]);

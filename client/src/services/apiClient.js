@@ -1,5 +1,6 @@
 // client/src/services/apiClient.js
 const BASE = import.meta.env.VITE_API_URL;
+
 export default {
     post: async (path, payload) => {
         const res = await fetch(`${BASE}${path}`, {

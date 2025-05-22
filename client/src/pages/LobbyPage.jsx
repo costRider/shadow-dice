@@ -2,17 +2,16 @@ import React, { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import CreateRoomPopup from "@/components/CreateRoomPopup";
 import PasswordPopup from "@/components/auth/PasswordPopup";
-import { UserContext } from "@/context/UserContext";
 import useRooms from "@/hooks/useRooms";
+import useLobbyUsers from "@/hooks/useLobbyUsers";
 
 const LobbyPage = () => {
-    const { user } = useContext(UserContext);
     const navigate = useNavigate();
     const [selectedRoom, setSelectedRoom] = useState(null);
     const [showPopup, setShowPopup] = useState(false);
     const [showPasswordPopup, setShowPasswordPopup] = useState(false);
     const [roomToEnter, setRoomToEnter] = useState(null);
-
+    const { users: lobbyUsers, loading: lobbyLoading } = useLobbyUsers();
     const { rooms, create, join } = useRooms();
 
     const goToRoom = async (room) => {
@@ -50,7 +49,7 @@ const LobbyPage = () => {
                             >
                                 <p className="font-bold">{room.title}</p>
                                 <p>
-                                    {room.players.length} / {room.maxPlayers}명
+                                    {(room.players?.length ?? 0)} / {room.maxPlayers}명
                                 </p>
                                 <p>
                                     {room.isPrivate ? "🔒 비공개" : "🌐 공개"} | 상태: {room.status}
@@ -108,7 +107,25 @@ const LobbyPage = () => {
             {/* 하단: 채팅 + 접속자 목록 */}
             <div className="flex h-[25%]">
                 <div className="w-[70%] border-r p-4 overflow-y-auto">💬 채팅창</div>
-                <div className="w-[30%] p-4 overflow-y-auto">👤 접속자 목록</div>
+                <div className="w-[30%] p-4 overflow-y-auto">
+                    <h3 className="font-semibold mb-2">👥 로비 접속자</h3>
+                    {lobbyLoading && <p>로비 사용자 불러오는 중...</p>}
+                    {!lobbyLoading && (
+                        <ul className="space-y-1">
+                            {lobbyUsers.map((u) => (
+                                <li key={u.id} className="flex items-center space-x-2">
+                                    {u.avatar && (
+                                        <img src={u.avatar} alt={u.nickname} className="w-6 h-6 rounded-full" />
+                                    )}
+                                    <span>{u.nickname}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                    {!lobbyLoading && lobbyUsers.length === 0 && (
+                        <p className="text-gray-500">현재 접속자가 없습니다.</p>
+                    )}
+                </div>
             </div>
 
             {/* 방 생성 팝업 */}

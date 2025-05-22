@@ -6,7 +6,7 @@ import {
   updateRoomStatus,
   addPlayerToRoom,
   setPlayerReady,
-} from "../roomModel.js";
+} from "../services/roomModel.js";
 const router = express.Router();
 
 // 방 목록 조회

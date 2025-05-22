@@ -8,7 +8,7 @@ import apiClient from './apiClient';
 export async function getRooms() {
   const { ok, data } = await apiClient.get('rooms/list');
   if (!ok) throw new Error(data.message || '방 목록 조회 실패');
-  return data;
+  return data.rooms;
 }
 
 /**

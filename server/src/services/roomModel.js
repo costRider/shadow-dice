@@ -1,4 +1,4 @@
-import db from "./db.js";
+import db from "../config/db.js";
 import { v4 as uuid } from "uuid";
 
 // 방 생성
@@ -45,17 +45,34 @@ export function getAllRooms() {
   return db
     .prepare(
       `
-    SELECT r.*, u.nickname as hostNickname
-    FROM rooms r
-    JOIN users u ON r.hostId = u.id
-    ORDER BY r.createdAt DESC
+     SELECT r.*, 
+         json_group_array(json_object('id', u.id, 'nickname', u.nickname)) as players
+      FROM rooms r
+      LEFT JOIN room_players rp ON r.id = rp.roomid
+      LEFT JOIN users u ON rp.userid = u.id
+      GROUP BY r.id
   `,
     )
     .all()
-    .map((r) => ({
+    /*.map((r) => ({
       ...r,
       isPrivate: !!r.isPrivate,
-    }));
+    }));*/
+    .map((r) => {
+      let parsedPlayers;
+      try {
+        parsedPlayers = JSON.parse(r.players); // 👈 JSON 파싱
+      } catch (err) {
+        console.error('[⚠️ players 파싱 실패]', r.players);
+        parsedPlayers = [];
+      }
+
+      return {
+        ...r,
+        isPrivate: !!r.isPrivate,
+        players: parsedPlayers,
+      };
+    });
 }
 
 // 특정 방 상세
