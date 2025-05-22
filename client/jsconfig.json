@@ -1,0 +1,15 @@
+// This file is used to configure the JavaScript language service in Visual Studio Code.
+// It specifies the base URL for module resolution and includes the source directory.
+{
+    "compilerOptions": {
+        "baseUrl": "src",
+        "paths": {
+            "@/*": [
+                "*"
+            ]
+        }
+    },
+    "include": [
+        "src"
+    ]
+}

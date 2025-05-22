@@ -1,20 +1,26 @@
 import React, { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
-import CreateRoomPopup from "../components/CreateRoomPopup"; // 방 생성 팝업 컴포넌트
-import PasswordPopup from "../components/auth/PasswordPopup";
-import { UserContext } from "../context/UserContext";
-import { fetchRooms, joinRoomAPI } from "../services/rooms"; // API 호출 함수들
+import CreateRoomPopup from "@/components/CreateRoomPopup";
+import PasswordPopup from "@/components/auth/PasswordPopup";
+import { UserContext } from "@/context/UserContext";
+import useRooms from "@/hooks/useRooms";
 
 const LobbyPage = () => {
     const { user } = useContext(UserContext);
+    const navigate = useNavigate();
     const [selectedRoom, setSelectedRoom] = useState(null);
     const [showPopup, setShowPopup] = useState(false);
-    const [rooms, setRooms] = useState([]);
     const [showPasswordPopup, setShowPasswordPopup] = useState(false);
     const [roomToEnter, setRoomToEnter] = useState(null);
-    const navigate = useNavigate();
 
-    const handleRoomEnter = async (room) => {
+    const { rooms, create, join } = useRooms();
+
+    const goToRoom = async (room) => {
+        await join(room.id);
+        navigate("/gamelobby", { state: { room } });
+    };
+
+    const handleRoomEnter = (room) => {
         if (room.status === "IN_PROGRESS") {
             alert("현재 게임이 진행 중인 방입니다.");
             return;
@@ -24,8 +30,7 @@ const LobbyPage = () => {
             setRoomToEnter(room);
             setShowPasswordPopup(true);
         } else {
-            await joinRoomAPI(room.id, user.userId);
-            navigate("/gamelobby", { state: { room } });
+            goToRoom(room);
         }
     };
 
@@ -41,14 +46,14 @@ const LobbyPage = () => {
                                 key={room.id}
                                 onClick={() => setSelectedRoom(room)}
                                 onDoubleClick={() => handleRoomEnter(room)}
+                                className="cursor-pointer border p-2 rounded hover:bg-gray-100"
                             >
                                 <p className="font-bold">{room.title}</p>
                                 <p>
                                     {room.players.length} / {room.maxPlayers}명
                                 </p>
                                 <p>
-                                    {room.isPrivate ? "🔒 비공개" : "🌐 공개"} | 상태:{" "}
-                                    {room.status}
+                                    {room.isPrivate ? "🔒 비공개" : "🌐 공개"} | 상태: {room.status}
                                 </p>
                             </li>
                         ))}
@@ -59,20 +64,11 @@ const LobbyPage = () => {
                     <h2 className="font-semibold text-lg mb-2">방 정보</h2>
                     {selectedRoom ? (
                         <div>
+                            <p><strong>방 이름:</strong> {selectedRoom.title}</p>
+                            <p><strong>방장:</strong> {selectedRoom.hostNickname}</p>
+                            <p><strong>인원:</strong> {selectedRoom.players.length} / {selectedRoom.maxPlayers}</p>
                             <p>
-                                <strong>방 이름:</strong> {selectedRoom.title}
-                            </p>
-                            <p>
-                                <strong>방장:</strong> {selectedRoom.hostNickname}
-                            </p>
-                            <p>
-                                <strong>인원:</strong> {selectedRoom.players.length} /{" "}
-                                {selectedRoom.maxPlayers}
-                            </p>
-                            <p>
-                                <strong>설명:</strong>{" "}
-                                {selectedRoom.isPrivate ? "🔒 비공개" : "🌐 공개"} |{" "}
-                                {selectedRoom.map}
+                                <strong>설명:</strong> {selectedRoom.isPrivate ? "🔒 비공개" : "🌐 공개"} | {selectedRoom.map}
                             </p>
                         </div>
                     ) : (
@@ -80,10 +76,10 @@ const LobbyPage = () => {
                     )}
                 </div>
             </div>
-            {/* 중단: 생성/입장 + 나가기 버튼 우측 */}
+
+            {/* 중단: 생성/입장 + 나가기 버튼 */}
             <div className="flex h-[15%] items-center justify-between px-6 border-b border-gray-300">
                 <div className="space-x-4">
-                    {/* 중단 영역에서 방 생성 버튼 클릭 시 */}
                     <button
                         onClick={() => setShowPopup(true)}
                         className="bg-green-500 px-6 py-3 rounded text-white hover:bg-green-600"
@@ -92,9 +88,7 @@ const LobbyPage = () => {
                     </button>
 
                     <button
-                        className={`${selectedRoom
-                            ? "bg-blue-500 hover:bg-blue-600"
-                            : "bg-gray-300 cursor-not-allowed"
+                        className={`${selectedRoom ? "bg-blue-500 hover:bg-blue-600" : "bg-gray-300 cursor-not-allowed"
                             } px-6 py-3 rounded text-white`}
                         disabled={!selectedRoom}
                         onClick={() => handleRoomEnter(selectedRoom)}
@@ -110,23 +104,25 @@ const LobbyPage = () => {
                     ❌ 나가기
                 </button>
             </div>
+
             {/* 하단: 채팅 + 접속자 목록 */}
             <div className="flex h-[25%]">
                 <div className="w-[70%] border-r p-4 overflow-y-auto">💬 채팅창</div>
                 <div className="w-[30%] p-4 overflow-y-auto">👤 접속자 목록</div>
             </div>
-            {/* 팝업 출력 */}
+
+            {/* 방 생성 팝업 */}
             {showPopup && (
                 <CreateRoomPopup
                     onClose={() => setShowPopup(false)}
-                    onCreate={(roomData) => {
-                        console.log("방 생성됨:", roomData);
-                        fetchRooms().then((res) => setRooms(res.rooms)); // 서버에서 새 목록 다시 불러오기
+                    onCreate={async (roomData) => {
+                        await create(roomData);
                         setShowPopup(false);
                     }}
                 />
             )}
-            {/* 비밀번호 팝업 */}
+
+            {/* 비밀번호 입력 팝업 */}
             {showPasswordPopup && (
                 <PasswordPopup
                     onClose={() => setShowPasswordPopup(false)}

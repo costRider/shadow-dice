@@ -1,16 +1,15 @@
-import { useContext } from "react";
 import React, { useState } from "react";
-import { loginUser } from "../services/api";
 import { useNavigate } from "react-router-dom";
-import SignupModal from "../components/SignupModal";
-import { UserContext } from "../context/UserContext";
+import SignupModal from "@/components/SignupModal";
+import useAuth from "@/hooks/useAuth";
 
 const LoginPage = () => {
     const [userId, setUserId] = useState("");
     const [password, setPassword] = useState("");
     const [showSignup, setShowSignup] = useState(false);
     const navigate = useNavigate();
-    const { setUser } = useContext(UserContext);
+
+    const { login } = useAuth();
 
     const handleLogin = async () => {
         if (!userId || !password) {
@@ -19,17 +18,11 @@ const LoginPage = () => {
         }
 
         try {
-            const { success, user } = await loginUser(userId, password);
-
-            if (success && user) {
-                console.log("✅ 로그인 성공한 user:", user);
-                setUser(user);
-                navigate("/lobby");
-            } else {
-                console.log("❌ 로그인 실패:", user);
-                alert("로그인 실패: " + (user.message || ""));
-            }
+            const user = await login(userId, password);
+            console.log("✅ 로그인 성공한 user:", user);
+            navigate("/lobby");
         } catch (err) {
+            console.error("❌ 로그인 실패:", err.message);
             alert("로그인 실패: " + err.message);
         }
     };
@@ -39,13 +32,13 @@ const LoginPage = () => {
             <h1 className="text-4xl font-bold mb-8">🎲 Dice Shadow</h1>
 
             <input
-                className="w-64 px-4 py-2 border rounded"
+                className="w-64 px-4 py-2 mb-2 border rounded text-white"
                 placeholder="아이디"
                 value={userId}
                 onChange={(e) => setUserId(e.target.value)}
             />
             <input
-                className="w-64 px-4 py-2 border rounded"
+                className="w-64 px-4 py-2 mb-4 border rounded text-white"
                 placeholder="비밀번호"
                 type="password"
                 value={password}
@@ -61,7 +54,7 @@ const LoginPage = () => {
                 </button>
                 <button
                     onClick={() => setShowSignup(true)}
-                    className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400"
+                    className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400 text-black"
                 >
                     회원가입
                 </button>

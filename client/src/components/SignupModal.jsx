@@ -1,20 +1,33 @@
 import React, { useState } from "react";
-import { signup } from "../services/api";
+import useAuth from "@/hooks/useAuth";
 
 const SignupModal = ({ onClose }) => {
   const [userId, setUserId] = useState("");
   const [nickname, setNickname] = useState("");
   const [password, setPassword] = useState("");
 
+  const { signup } = useAuth();
+
   const handleSignup = async () => {
-    const { success, error } = await signup({ userId, password, nickname });
-    if (!success) {
-      if (error === "DUPLICATE") alert("ID 또는 닉네임 중복");
-      else alert("가입 실패: " + error);
+    if (!userId || !nickname || !password) {
+      alert("모든 항목을 입력해주세요.");
       return;
     }
-    alert("가입 완료! 로그인 해주세요.");
-    onClose();
+
+    try {
+      const { success, error } = await signup({ userId, password, nickname });
+
+      if (!success) {
+        if (error === "DUPLICATE") alert("ID 또는 닉네임이 이미 사용 중입니다.");
+        else alert("가입 실패: " + error);
+        return;
+      }
+
+      alert("가입 완료! 로그인 해주세요.");
+      onClose();
+    } catch (err) {
+      alert("가입 중 오류 발생: " + err.message);
+    }
   };
 
   return (
@@ -60,3 +73,7 @@ const SignupModal = ({ onClose }) => {
 };
 
 export default SignupModal;
+// import React, { useState } from "react";
+// import { useNavigate } from "react-router-dom";
+// import { signup } from "@/services/api";
+//

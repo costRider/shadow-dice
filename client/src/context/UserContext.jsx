@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, useCallback } from "react";
-import { updateUser as apiUpdateUser } from "../services/user";
+import { updateUser as apiUpdateUser } from "@/services";
 
 export const UserContext = createContext({
   user: null,

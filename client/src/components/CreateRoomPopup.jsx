@@ -1,9 +1,10 @@
 import React, { useState, useContext } from "react";
-import { createRoomAPI } from "../services/rooms";
-import { UserContext } from "../context/UserContext";
+import useRooms from "@/hooks/useRooms";
+import { UserContext } from "@/context/UserContext";
 
 const CreateRoomPopup = ({ onClose, onCreate }) => {
   const { user } = useContext(UserContext);
+  const { createRoom } = useRooms();
 
   const [roomName, setRoomName] = useState("");
   const [maxPlayers, setMaxPlayers] = useState(4);
@@ -27,30 +28,32 @@ const CreateRoomPopup = ({ onClose, onCreate }) => {
     };
 
     try {
-      const res = await createRoomAPI(newRoom);
-      if (res.room) {
-        console.log("보내는 room 데이터:", newRoom);
+      const { room, error } = await createRoom(newRoom);
 
-        onCreate(res.room); // 부모에서 목록 갱신
+      if (error) {
+        alert("방 생성 실패: " + error);
+        return;
       }
+
+      console.log("방 생성 성공:", room);
+      onCreate(room);
     } catch (err) {
-      console.log("보내는 room 데이터:", newRoom);
-      console.error("방 생성 실패", err);
+      console.error("방 생성 중 예외 발생:", err);
+      alert("방 생성 중 오류가 발생했습니다.");
     }
   };
-  // 방 생성 후 부모 컴포넌트에 알림
+
   return (
     <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[400px] bg-white border shadow-lg p-5 rounded z-30">
       <h2 className="text-lg font-semibold mb-4">🛠 방 만들기</h2>
+
       {/* 방 이름 */}
       <div className="mb-3">
         <label className="block mb-1 text-sm">방 이름</label>
         <input
           type="text"
           value={roomName}
-          onChange={(e) => {
-            setRoomName(e.target.value);
-          }}
+          onChange={(e) => setRoomName(e.target.value)}
           className="w-full px-3 py-2 border rounded"
         />
       </div>
@@ -92,13 +95,15 @@ const CreateRoomPopup = ({ onClose, onCreate }) => {
         <label className="block mb-1 text-sm">공개 여부</label>
         <div className="flex gap-2">
           <button
-            className={`flex-1 border rounded py-2 ${!isPrivate ? "bg-blue-500 text-white" : "bg-gray-100"}`}
+            className={`flex-1 border rounded py-2 ${!isPrivate ? "bg-blue-500 text-white" : "bg-gray-100"
+              }`}
             onClick={() => setIsPrivate(false)}
           >
             공개
           </button>
           <button
-            className={`flex-1 border rounded py-2 ${isPrivate ? "bg-blue-500 text-white" : "bg-gray-100"}`}
+            className={`flex-1 border rounded py-2 ${isPrivate ? "bg-blue-500 text-white" : "bg-gray-100"
+              }`}
             onClick={() => setIsPrivate(true)}
           >
             비공개
@@ -106,7 +111,7 @@ const CreateRoomPopup = ({ onClose, onCreate }) => {
         </div>
       </div>
 
-      {/* 비밀번호 입력 */}
+      {/* 비밀번호 */}
       {isPrivate && (
         <div className="mb-3">
           <label className="block mb-1 text-sm">비밀번호</label>

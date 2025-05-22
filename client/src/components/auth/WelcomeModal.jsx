@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { login } from "../../services/api";
-import { UserContext } from "../../context/UserContext";
+import { login } from "@/services/api";
+import { UserContext } from "@/context/UserContext";
 
 const WelcomePopup = ({ onSubmit }) => {
   return (
