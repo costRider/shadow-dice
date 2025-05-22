@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { signup } from "../api/api";
+import { signup } from "../services/api";
 
 const SignupModal = ({ onClose }) => {
   const [userId, setUserId] = useState("");

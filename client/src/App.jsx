@@ -1,8 +1,8 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import LoginScreen from "./screens/LoginScreen";
-import LobbyScreen from "./screens/LobbyScreen";
-import GameLobby from "./screens/GameLobby";
-import GameScreen from "./screens/GameScreen";
+import LoginPage from "./pages/LoginPage";
+import LobbyPage from "./pages/LobbyPage";
+import GameLobbyPage from "./pages/GameLobbyPage";
+import GamePage from "./pages/GamePage";
 import { UserProvider } from "./context/UserContext";
 
 function App() {
@@ -11,10 +11,10 @@ function App() {
       <div className="App">
         <Router>
           <Routes>
-            <Route path="/" element={<LoginScreen />} />
-            <Route path="/lobby" element={<LobbyScreen />} />
-            <Route path="/gamelobby" element={<GameLobby />} />
-            <Route path="/game" element={<GameScreen />} />
+            <Route path="/" element={<LoginPage />} />
+            <Route path="/lobby" element={<LobbyPage />} />
+            <Route path="/gamelobby" element={<GameLobbyPage />} />
+            <Route path="/game" element={<GamePage />} />
           </Routes>
         </Router>
       </div>

@@ -1,5 +1,5 @@
 import React, { useState, useContext } from "react";
-import { createRoomAPI } from "../api/rooms";
+import { createRoomAPI } from "../services/rooms";
 import { UserContext } from "../context/UserContext";
 
 const CreateRoomPopup = ({ onClose, onCreate }) => {

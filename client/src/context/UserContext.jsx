@@ -1,11 +1,11 @@
 import React, { createContext, useState, useEffect, useCallback } from "react";
-import { updateUser as apiUpdateUser } from "../api/user";
+import { updateUser as apiUpdateUser } from "../services/user";
 
 export const UserContext = createContext({
   user: null,
-  setUser: () => {},
-  markDirty: () => {},
-  flush: () => {},
+  setUser: () => { },
+  markDirty: () => { },
+  flush: () => { },
 });
 
 export const UserProvider = ({ children }) => {

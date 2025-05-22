@@ -21,8 +21,8 @@ export async function loginUser(userId, password) {
   const data = await res.json();
 
   if (!res.ok) {
-    const errorData = await res.json();
-    throw new Error(errorData.message);
+    // 로그인 실패 시 에러 처리
+    throw new Error(data.message);
   }
 
   return await data;
