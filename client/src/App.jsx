@@ -5,6 +5,7 @@ import GameLobbyPage from "@/pages/GameLobbyPage";
 import GamePage from "@/pages/GamePage";
 import { UserProvider } from "@/context/UserContext";
 
+
 function App() {
   return (
     <UserProvider>

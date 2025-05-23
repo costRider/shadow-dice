@@ -11,12 +11,17 @@ const LobbyPage = () => {
     const [showPopup, setShowPopup] = useState(false);
     const [showPasswordPopup, setShowPasswordPopup] = useState(false);
     const [roomToEnter, setRoomToEnter] = useState(null);
-    const { users: lobbyUsers, loading: lobbyLoading } = useAuth();
+    const { users: lobbyUsers, loading: lobbyLoading, logout } = useAuth();
     const { rooms, create, join } = useRooms();
 
     const goToRoom = async (room) => {
         await join(room.id);
         navigate("/gamelobby", { state: { room } });
+    };
+
+    const handleExit = async () => {
+        await logout();
+        navigate("/");
     };
 
     const handleRoomEnter = (room) => {
@@ -32,6 +37,8 @@ const LobbyPage = () => {
             goToRoom(room);
         }
     };
+
+
 
     return (
         <div className="flex flex-col h-screen w-screen">
@@ -98,7 +105,7 @@ const LobbyPage = () => {
 
                 <button
                     className="text-sm text-red-500 hover:underline"
-                    onClick={() => navigate("/")}
+                    onClick={() => handleExit()}
                 >
                     ❌ 나가기
                 </button>

@@ -32,9 +32,16 @@ export default function useAuth() {
     }, [setUser]);
 
     const logout = useCallback(async () => {
-        await flush();
-        await logoutUser();
-        setUser(null);
+        try {
+            socket.disconnect(); // 소켓 연결 종료
+            await flush();
+            await logoutUser();
+            setUser(null);
+        }
+        catch (error) {
+            console.error('로그아웃 실패:', error);
+            return { ok: false, error };
+        }
     }, [flush, setUser]);
 
     return { user, login, signup, logout, loading, setLoading, users, setUsers };

@@ -6,6 +6,8 @@ export const UserContext = createContext({
   setUser: () => { },
   markDirty: () => { },
   flush: () => { },
+  lobbyUsers: [],
+  setLobbyUsers: () => { },
 });
 
 export const UserProvider = ({ children }) => {
@@ -24,7 +26,7 @@ export const UserProvider = ({ children }) => {
 
   // Helper: 서버에 user 업데이트
   const updateUser = useCallback(async (userData) => {
-    if (!userData) return;
+    if (!userData || !userData.id) return;
     try {
       await apiClient.put(`users/${userData.id}`, userData);
     } catch (err) {
@@ -32,46 +34,45 @@ export const UserProvider = ({ children }) => {
     }
   }, []);
 
-  // 3) 주기적(15분) 또는 Dirty 시 반영
+  // 3) Dirty 시 즉시 반영 (이벤트 기반)
   useEffect(() => {
-    if (!user) return;
-    const intervalId = setInterval(() => {
-      if (dirty) {
-        updateUser(user);
-        setDirty(false);
-      }
-    }, 1000 * 60 * 15);
-    return () => clearInterval(intervalId);
-  }, [user, dirty, updateUser]);
+    if (dirty && user) {
+      updateUser(user);
+      setDirty(false);
+    }
+  }, [dirty, user, updateUser]);
 
-  // 4) flush: 즉시 반영
+  // 4) flush: 외부에서 강제 동기화
   const flush = useCallback(async () => {
     if (dirty && user) {
       await updateUser(user);
       setDirty(false);
     }
-  }, [user, dirty, updateUser]);
+  }, [dirty, user, updateUser]);
 
-  // 5) 언마운트 또는 브라우저 종료 시
+  // 5) 언마운트 또는 브라우저 종료 시 최종 상태 전송
   useEffect(() => {
     const handleBeforeUnload = () => {
       if (user) {
-        // sendBeacon로 동기 요청
-        const url = `${import.meta.env.VITE_API_URL}users/${user.id}/status`;
-        const blob = new Blob([JSON.stringify({ status: 'OFFLINE' })], { type: 'application/json' });
+        const url = `${import.meta.env.VITE_API_URL}/users/${user.id}/status`;
+        const blob = new Blob(
+          [JSON.stringify({ status: 'OFFLINE' })],
+          { type: 'application/json' }
+        );
         navigator.sendBeacon(url, blob);
+        flush();
       }
-      // flush final state sync
-      flush();
     };
+
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [user, flush]);
 
   return (
-    <UserContext.Provider value={{ user, setUser, markDirty, flush, lobbyUsers, setLobbyUsers }}>
+    <UserContext.Provider
+      value={{ user, setUser, markDirty, flush, lobbyUsers, setLobbyUsers }}
+    >
       {children}
     </UserContext.Provider>
   );
 };
-// UserProvider는 사용자 정보를 관리하는 Context Provider입니다.

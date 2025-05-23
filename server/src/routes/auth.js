@@ -24,12 +24,17 @@ router.post("/login", (req, res) => {
 
   // 보안을 위해 비밀번호는 제외하고 반환
   const { password: pw, ...safeUser } = user;
+
+  // 세션에 사용자 정보 저장
+  console.log("세션에 저장된 사용자 정보:", safeUser);
+  req.session.user = user;
   res.json({ success: true, user: safeUser });
 });
 
 // 사용자 정보 업데이트
 router.put("/update", (req, res) => {
-  const { userId, ...userData } = req.body;
+  //const { userId, ...userData } = req.body;
+  const { userId, ...userData } = req.session.user;
   if (!userId || !userData)
     return res.status(400).json({ error: "잘못된 입력 값" });
 
@@ -44,91 +49,22 @@ router.put("/update", (req, res) => {
   res.json({ success: true });
 });
 
-// 사용자 정보 조회
-router.get("/:userId", (req, res) => {
-  const { userId } = req.params;
-  const user = getUserById(userId);
-  if (!user)
-    return res.status(404).json({ error: "사용자를 찾을 수 없습니다" });
-
-  // 보안을 위해 비밀번호는 제외하고 반환
-  const { password: pw, ...safeUser } = user;
-  res.json({ success: true, user: safeUser });
-});
-
-// 사용자 정보 삭제
-router.delete("/:userId", (req, res) => {
-  const { userId } = req.params;
-  const user = getUserById(userId);
-  if (!user)
-    return res.status(404).json({ error: "사용자를 찾을 수 없습니다" });
-
-  // 사용자 정보 삭제 로직 추가 필요
-  // 예: db.prepare('DELETE FROM users WHERE id = ?').run(userId);
-  // ...
-
-  res.json({ success: true });
-});
-
-// 사용자 정보 조회 (모든 사용자)
-router.get("/", (req, res) => {
-  const users = db.prepare("SELECT * FROM users").all();
-  if (!users) return res.status(404).json({ error: "NO_USERS_FOUND" });
-
-  const safeUsers = users.map((user) => {
-    const { password: pw, ...safeUser } = user;
-    return safeUser;
-  });
-
-  res.json({ success: true, users: safeUsers });
-});
-
-// 사용자 정보 업데이트 (특정 필드만)
-router.put("/:userId", (req, res) => {
-  const { userId } = req.params;
-  const { field, value } = req.body;
-
-  if (!userId || !field || !value)
-    return res.status(400).json({ error: "MISSING_FIELDS" });
-
-  const user = getUserById(userId);
-  if (!user) return res.status(404).json({ error: "USER_NOT_FOUND" });
-
-  // 사용자 정보 업데이트 로직 추가 필요
-  // 예: db.prepare('UPDATE users SET field = ? WHERE id = ?').run(value, userId);
-  // ...
-
-  res.json({ success: true });
-});
-
-// 사용자 정보 삭제 (특정 필드만)
-router.delete("/:userId/:field", (req, res) => {
-  const { userId, field } = req.params;
-
-  if (!userId || !field)
-    return res.status(400).json({ error: "MISSING_FIELDS" });
-
-  const user = getUserById(userId);
-  if (!user) return res.status(404).json({ error: "USER_NOT_FOUND" });
-
-  // 사용자 정보 삭제 로직 추가 필요
-  // 예: db.prepare('UPDATE users SET field = NULL WHERE id = ?').run(userId);
-  // ...
-
-  res.json({ success: true });
-});
-
 // 사용자 로그아웃
 router.post("/logout", (req, res) => {
-  const userId = req.body.userId;
-
+  //const userId = req.body.userId;
+  const userId = req.session.user.id;
   try {
-    updateUserStatus(userId, "OFFLINE");
-    res.json({ ok: true });
+    // updateUserStatus(userId, "OFFLINE");
+    req.session.destroy(err => {
+      if (err) return res.sendStatus(500);
+      res.clearCookie('connect.sid');
+      res.json({ success: true });
+    });
   } catch (err) {
     console.error("Logout error:", err);
     res.status(500).json({ ok: false, message: "Logout failed" });
   }
+
 });
 
 
