@@ -128,6 +128,20 @@ export function addPlayerToRoom(roomId, userId) {
   ).run(roomId, userId);
 }
 
+// 유저 방 나가기
+// 방에 유저가 없으면 방 삭제
+export function leaveRoom(roomId, userId) {
+  db.prepare(`DELETE FROM room_players WHERE room_id = ? AND user_id = ?`).run(roomId, userId);
+
+  const remaining = db.prepare(`SELECT COUNT(*) as count FROM room_players WHERE room_id = ?`).get(roomId);
+
+  if (remaining.count === 0) {
+    db.prepare(`DELETE FROM rooms WHERE id = ?`).run(roomId);
+    console.log(`🗑️  Room ${roomId} deleted because it became empty.`);
+  }
+}
+
+
 // 준비 상태 변경
 export function setPlayerReady(roomId, userId, isReady) {
   db.prepare(

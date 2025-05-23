@@ -29,6 +29,19 @@ router.post("/create", (req, res) => {
   res.json({ room });
 });
 
+// 방 나가기기
+router.post("/leave", (req, res) => {
+  const { roomId, userId } = req.body;
+  try {
+    leaveRoom(roomId, userId);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("leaveRoom error:", err);
+    res.status(500).json({ ok: false, message: "방 나가기 실패" });
+  }
+});
+
+
 // 방 상세 조회
 router.get("/:id", (req, res) => {
   const room = getRoomById(req.params.id);

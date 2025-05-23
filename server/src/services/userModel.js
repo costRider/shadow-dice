@@ -34,12 +34,11 @@ export function createUser({ id, password, nickname }) {
 
 export function getUserById(id) {
   const row = db.prepare("SELECT * FROM users WHERE id = ?").get(id);
-  console.log("getUserById", row);
   if (!row) return null;
   return {
     ...row,
-    avatar: JSON.parse(row.avatar),
-    characters: JSON.parse(row.characters),
+    avatar: JSON.parse(row.avatar || '{}'),
+    characters: JSON.parse(row.characters || '[]'),
   };
 }
 
@@ -189,6 +188,24 @@ export function updateUserPassword(id, password) {
 
   db.prepare("UPDATE users SET password = ? WHERE id = ?").run(password, id);
   return { ...user, password };
+}
+
+export function updateUserStatus(id, status, socketId = null) {
+  const stmt = db.prepare(
+    `UPDATE users SET status = ?, socketId = ? WHERE id = ?`
+  );
+  stmt.run(status, socketId, id);
+}
+
+
+export function getLobbyUsers() {
+  const rows = db.prepare(
+    "SELECT id, nickname, avatar FROM users WHERE status = 'LOBBY'"
+  ).all();
+  return rows.map(row => ({
+    ...row,
+    avatar: JSON.parse(row.avatar || '{}'),
+  }));
 }
 
 export function getUserByIdWithPassword(id) {

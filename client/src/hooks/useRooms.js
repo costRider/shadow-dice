@@ -5,6 +5,7 @@ import {
     joinRoom,
     readyRoom,
     startRoom,
+    leaveRoom,
     // optionally: leaveRoom
 } from '@/services/rooms';
 import { updateUserStatus } from '@/services/user';
@@ -64,6 +65,20 @@ export default function useRooms() {
         }
     }, []);
 
+    // 방 나가기 (추가 필요)
+    const leave = useCallback(async (roomId, userId) => {
+        setError(null);
+        try {
+            await leaveRoom(roomId, userId);
+            setRooms(prev => prev.filter(r => r.id !== roomId));
+            return true;
+        } catch (err) {
+            console.error('leaveRoom failed:', err);
+            setError(err);
+            throw err;
+        }
+    }, []);
+
     // 준비 상태 토글
     const ready = useCallback(async (roomId, userId, isReady) => {
         setError(null);
@@ -106,6 +121,7 @@ export default function useRooms() {
         join,
         ready,
         start,
+        leave,
         // leave: useCallback(async (roomId) => { /* ... */ }, []),
     };
 }

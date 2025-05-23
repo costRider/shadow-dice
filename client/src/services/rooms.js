@@ -39,6 +39,19 @@ export async function joinRoom(roomId, userId) {
 }
 
 /**
+ * 방 나가기
+ * @param {string} roomId
+ * @param {string} userId
+ * @returns {Promise<Room>}
+ * 
+ */
+export async function leaveRoom(roomId, userId) {
+  const { ok, data } = await apiClient.post(`rooms/${roomId}/leave`, { userId });
+  if (!ok) throw new Error(data.message || '방 나가기 실패');
+  return data;
+}
+
+/**
  * 준비 상태 토글
  * @param {string} roomId
  * @param {string} userId

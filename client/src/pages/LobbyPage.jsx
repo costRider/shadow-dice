@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import CreateRoomPopup from "@/components/CreateRoomPopup";
 import PasswordPopup from "@/components/auth/PasswordPopup";
 import useRooms from "@/hooks/useRooms";
-import useLobbyUsers from "@/hooks/useLobbyUsers";
+import useAuth from "@/hooks/useAuth";
 
 const LobbyPage = () => {
     const navigate = useNavigate();
@@ -11,7 +11,7 @@ const LobbyPage = () => {
     const [showPopup, setShowPopup] = useState(false);
     const [showPasswordPopup, setShowPasswordPopup] = useState(false);
     const [roomToEnter, setRoomToEnter] = useState(null);
-    const { users: lobbyUsers, loading: lobbyLoading } = useLobbyUsers();
+    const { users: lobbyUsers, loading: lobbyLoading } = useAuth();
     const { rooms, create, join } = useRooms();
 
     const goToRoom = async (room) => {

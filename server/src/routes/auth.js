@@ -118,4 +118,18 @@ router.delete("/:userId/:field", (req, res) => {
   res.json({ success: true });
 });
 
+// 사용자 로그아웃
+router.post("/logout", (req, res) => {
+  const userId = req.body.userId;
+
+  try {
+    updateUserStatus(userId, "OFFLINE");
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("Logout error:", err);
+    res.status(500).json({ ok: false, message: "Logout failed" });
+  }
+});
+
+
 export default router;

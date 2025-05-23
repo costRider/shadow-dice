@@ -11,6 +11,7 @@ export const UserContext = createContext({
 export const UserProvider = ({ children }) => {
   const [user, _setUser] = useState(null);
   const [dirty, setDirty] = useState(false);
+  const [lobbyUsers, setLobbyUsers] = useState([]);
 
   // 1) 사용자 정보 변경 시 Dirty 표시
   const setUser = useCallback((newUser) => {
@@ -68,7 +69,7 @@ export const UserProvider = ({ children }) => {
   }, [user, flush]);
 
   return (
-    <UserContext.Provider value={{ user, setUser, markDirty, flush }}>
+    <UserContext.Provider value={{ user, setUser, markDirty, flush, lobbyUsers, setLobbyUsers }}>
       {children}
     </UserContext.Provider>
   );

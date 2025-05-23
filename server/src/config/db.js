@@ -7,7 +7,7 @@ const __dirname = path.dirname(__filename);
 const DB_PATH = path.resolve(__dirname, '../../data/userdata.db');
 
 
-const db = new Database(DB_PATH, { verbose: console.log });
+const db = new Database(DB_PATH, { verbose: /*console.log*/ undefined });
 // users 테이블 생성
 db.prepare(
   `
