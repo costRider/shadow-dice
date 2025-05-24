@@ -4,6 +4,7 @@ import CreateRoomPopup from "@/components/CreateRoomPopup";
 import PasswordPopup from "@/components/auth/PasswordPopup";
 import useRooms from "@/hooks/useRooms";
 import useAuth from "@/hooks/useAuth";
+import FixedChatBox from "@/components/lobby/ChatBox";
 
 const LobbyPage = () => {
     const navigate = useNavigate();
@@ -113,7 +114,9 @@ const LobbyPage = () => {
 
             {/* 하단: 채팅 + 접속자 목록 */}
             <div className="flex h-[25%]">
-                <div className="w-[70%] border-r p-4 overflow-y-auto">💬 채팅창</div>
+                <div className="w-[70%] border-r">
+                    <FixedChatBox chatType="lobby" />
+                </div>
                 <div className="w-[30%] p-4 overflow-y-auto">
                     <h3 className="font-semibold mb-2">👥 로비 접속자</h3>
                     {lobbyLoading && <p>로비 사용자 불러오는 중...</p>}

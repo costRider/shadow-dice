@@ -1,37 +1,40 @@
 import express from "express";
 import cors from "cors";
+import session from "express-session";
+import dotenv from "dotenv";
+
 import authRoutes from "./routes/auth.js";
 import roomsRouter from "./routes/rooms.js";
 import userRoutes from './routes/userRoutes.js';
-import setupSocket from './socket/socket.js';
-import session from "express-session";
-import dotenv from 'dotenv';
+
+// Socket 관련
+import { setupSocket } from './socket/socket.js';
 
 dotenv.config();
 
 const app = express();
 
+// 1) 공통 미들웨어: CORS, JSON 파싱, 세션
+app.use(cors({ origin: "http://localhost:5173", credentials: true }));
+app.use(express.json());
 app.use(session({
-    secret: process.env.SESSION_SECRET,  // 여기서 읽어감
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: false }
+    cookie: { secure: false },
 }));
 
-console.log('SESSION_SECRET is:', process.env.SESSION_SECRET);
-
-const PORT = process.env.PORT || 4000;
-const server = app.listen(3001, () => console.log('🚀 서버 실행 중'));
-// 소켓 서버 설정
-
-setupSocket(server);
-
-app.listen(PORT, () => console.log(`Server listening on ${PORT}`));
-
-app.use(cors({ origin: "http://localhost:5173", credentials: true }));
-
-app.use(express.json());
+// 2) REST API 라우트
 app.use("/api/auth", authRoutes);
 app.use("/api/rooms", roomsRouter);
-app.use('/api/users', userRoutes);
+app.use("/api/users", userRoutes);
 
+// 3) HTTP 서버 생성 (express + Socket.IO 용)
+const PORT = process.env.PORT || 4000;
+const server = app.listen(PORT, () => {
+    console.log(`🚀 HTTP & Socket.IO server listening on ${PORT}`);
+});
+
+// 4) Socket.IO 초기화
+// setupSocket은 (server: http.Server) => io 반환
+setupSocket(server);
