@@ -191,6 +191,7 @@ export function updateUserPassword(id, password) {
 }
 
 export function updateUserStatus(id, status, socketId = null) {
+  console.log(`Updating user ${id} status to ${status} with socketId ${socketId}`);
   const stmt = db.prepare(
     `UPDATE users SET status = ?, socketId = ? WHERE id = ?`
   );

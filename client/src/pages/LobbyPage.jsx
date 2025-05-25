@@ -6,6 +6,7 @@ import useRooms from "@/hooks/useRooms";
 import useAuth from "@/hooks/useAuth";
 import FixedChatBox from "@/components/lobby/ChatBox";
 
+
 const LobbyPage = () => {
     const navigate = useNavigate();
     const [selectedRoom, setSelectedRoom] = useState(null);
@@ -21,6 +22,7 @@ const LobbyPage = () => {
     };
 
     const handleExit = async () => {
+        console.log("나가기 버튼 클릭");
         await logout();
         navigate("/");
     };
@@ -119,19 +121,16 @@ const LobbyPage = () => {
                 </div>
                 <div className="w-[30%] p-4 overflow-y-auto">
                     <h3 className="font-semibold mb-2">👥 로비 접속자</h3>
-                    {lobbyLoading && <p>로비 사용자 불러오는 중...</p>}
-                    {!lobbyLoading && (
-                        <ul className="space-y-1">
-                            {lobbyUsers.map((u) => (
-                                <li key={u.id} className="flex items-center space-x-2">
-                                    {u.avatar && (
-                                        <img src={u.avatar} alt={u.nickname} className="w-6 h-6 rounded-full" />
-                                    )}
-                                    <span>{u.nickname}</span>
-                                </li>
-                            ))}
-                        </ul>
-                    )}
+                    <ul className="space-y-1">
+                        {lobbyUsers.map((u) => (
+                            <li key={u.id} className="flex items-center space-x-2">
+                                {u.avatar && (
+                                    <img src={u.avatar} alt={u.nickname} className="w-6 h-6 rounded-full" />
+                                )}
+                                <span>{u.nickname}</span>
+                            </li>
+                        ))}
+                    </ul>
                     {!lobbyLoading && lobbyUsers.length === 0 && (
                         <p className="text-gray-500">현재 접속자가 없습니다.</p>
                     )}

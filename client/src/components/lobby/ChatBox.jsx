@@ -8,15 +8,17 @@ const FixedChatBox = ({
     roomId = null,
     className = ''
 }) => {
+
     const [newMessage, setNewMessage] = useState('');
-    const { user } = useContext(UserContext);
+    const context = useContext(UserContext) || {};
+    const user = context.user?.user;
 
     const {
         messages,
         sendMessage,
         messagesEndRef,
         isConnected
-    } = useChat(chatType, roomId);
+    } = useChat(chatType, roomId, user);
 
     const handleSendMessage = () => {
         if (!newMessage.trim()) return;
@@ -64,7 +66,7 @@ const FixedChatBox = ({
                             key={msg.id}
                             className={`${msg.type === 'system'
                                 ? 'text-center'
-                                : msg.userId === user.id
+                                : msg.userId === user?.id
                                     ? 'text-right'
                                     : 'text-left'
                                 }`}
@@ -74,11 +76,11 @@ const FixedChatBox = ({
                                     {msg.message}
                                 </div>
                             ) : (
-                                <div className={`inline-block max-w-[70%] ${msg.userId === user.id
+                                <div className={`inline-block max-w-[70%] ${msg.userId === user?.id
                                     ? 'bg-blue-500 text-white rounded-l-lg rounded-tr-lg'
                                     : 'bg-white border rounded-r-lg rounded-tl-lg shadow-sm'
                                     } p-2`}>
-                                    {msg.userId !== user.id && (
+                                    {msg.userId !== user?.id && (
                                         <div className="text-xs font-medium mb-1 text-gray-600">
                                             {msg.username}
                                         </div>
@@ -86,7 +88,7 @@ const FixedChatBox = ({
                                     <div className="text-sm leading-relaxed whitespace-pre-wrap">
                                         {msg.message}
                                     </div>
-                                    <div className={`text-xs mt-1 opacity-70 ${msg.userId === user.id ? 'text-blue-100' : 'text-gray-500'
+                                    <div className={`text-xs mt-1 opacity-70 ${msg.userId === user?.id ? 'text-blue-100' : 'text-gray-500'
                                         }`}>
                                         {formatTime(msg.timestamp)}
                                     </div>

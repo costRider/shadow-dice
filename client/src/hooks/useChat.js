@@ -6,7 +6,7 @@ import { useSocket } from './useSocket';
  * @param {'lobby'|'room'} chatType - 타입 ('lobby' or 'room')
  * @param {string|null} roomId - 방 채팅일 경우 roomId
  */
-export const useChat = (chatType = 'lobby', roomId = null) => {
+export const useChat = (chatType = 'lobby', roomId = null, user) => {
     const [messages, setMessages] = useState([]);
     const messagesEndRef = useRef(null);
     const { socket, isConnected, connect } = useSocket();
@@ -39,17 +39,17 @@ export const useChat = (chatType = 'lobby', roomId = null) => {
             : 'chat:room:send';
 
         const data = chatType === 'lobby'
-            ? { message: content }
-            : { roomId, message: content };
+            ? { message: content, user }
+            : { roomId, message: content, user };
 
         socket.emit(eventName, data);
         return true;
-    }, [socket, isConnected, chatType, roomId]);
+    }, [socket, isConnected, chatType, roomId, user]);
 
     // 4) 소켓 연결 & 리스너 설정
     useEffect(() => {
         // 최초 진입 시 소켓 연결
-        if (!isConnected) connect();
+        // if (!isConnected) connect();
 
         if (!socket) return;
 
