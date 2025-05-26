@@ -10,8 +10,9 @@ const FixedChatBox = ({
 }) => {
 
     const [newMessage, setNewMessage] = useState('');
-    const context = useContext(UserContext) || {};
-    const user = context.user?.user;
+    /* const context = useContext(UserContext) || {};
+     const user = context.user.user;*/
+    const user = useContext(UserContext).user || null;
 
     const {
         messages,

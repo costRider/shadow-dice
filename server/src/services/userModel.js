@@ -25,12 +25,21 @@ export function createUser({ id, password, nickname }) {
     ).run(id, password, nickname, 5000, avatar, characters, now);
     return { success: true };
   } catch (err) {
-    return {
-      success: false,
-      error: err.code === "SQLITE_CONSTRAINT" ? "DUPLICATE" : err.message,
-    };
+    // UNIQUE 제약 위반 시 id/nickname 구분
+    if (err.code && err.code.startsWith("SQLITE_CONSTRAINT")) {
+      const msg = err.message || "";
+      if (msg.includes("users.id")) {
+        return { success: false, error: "DUPLICATE_ID" };
+      }
+      if (msg.includes("users.nickname")) {
+        return { success: false, error: "DUPLICATE_NICKNAME" };
+      }
+      return { success: false, error: "DUPLICATE" };
+    }
+    return { success: false, error: err.message };
   }
 }
+
 
 export function getUserById(id) {
   const row = db.prepare("SELECT * FROM users WHERE id = ?").get(id);

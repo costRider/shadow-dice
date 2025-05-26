@@ -3,7 +3,8 @@ import useRooms from "@/hooks/useRooms";
 import { UserContext } from "@/context/UserContext";
 
 const CreateRoomPopup = ({ onClose, onCreate }) => {
-  const { user } = useContext(UserContext);
+  const userdata = useContext(UserContext);
+  const { user } = userdata.user;
   const { create } = useRooms();
 
   const [roomName, setRoomName] = useState("");
@@ -29,7 +30,7 @@ const CreateRoomPopup = ({ onClose, onCreate }) => {
 
     try {
       // create(data, userId) 호출
-      const created = await create(newRoomData, user.id);
+      const created = await create(newRoom, user);
 
       console.log("방 생성 성공:", created);
       onCreate(created);

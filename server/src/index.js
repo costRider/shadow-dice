@@ -4,7 +4,6 @@ import session from "express-session";
 import dotenv from "dotenv";
 import authRoutes from "./routes/auth.js";
 import roomsRouter from "./routes/rooms.js";
-import userRoutes from './routes/userRoutes.js';
 import { setupSocket } from './socket/socket.js';
 
 dotenv.config();
@@ -24,7 +23,6 @@ app.use(session({
 // 2. REST API 라우트
 app.use("/api/auth", authRoutes);
 app.use("/api/rooms", roomsRouter);
-app.use("/api/users", userRoutes);
 
 // 3. 정적 파일 서빙 (필요하다면)
 // app.use(express.static('public'));

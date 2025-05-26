@@ -4,8 +4,10 @@ import CreateRoomPopup from "@/components/CreateRoomPopup";
 import PasswordPopup from "@/components/auth/PasswordPopup";
 import useRooms from "@/hooks/useRooms";
 import useAuth from "@/hooks/useAuth";
+import useLobbyUsers from "@/hooks/useLobbyUsers";
 import FixedChatBox from "@/components/lobby/ChatBox";
-
+import { UserContext } from "@/context/UserContext";
+import { toast } from "@/context/ToastContext";
 
 const LobbyPage = () => {
     const navigate = useNavigate();
@@ -13,8 +15,10 @@ const LobbyPage = () => {
     const [showPopup, setShowPopup] = useState(false);
     const [showPasswordPopup, setShowPasswordPopup] = useState(false);
     const [roomToEnter, setRoomToEnter] = useState(null);
-    const { users: lobbyUsers, loading: lobbyLoading, logout } = useAuth();
+    const { logout } = useAuth();
     const { rooms, create, join } = useRooms();
+    const { loading: lobbyLoading } = useLobbyUsers();
+    const { lobbyUsers } = useContext(UserContext);
 
     const goToRoom = async (room) => {
         await join(room.id);
@@ -22,14 +26,13 @@ const LobbyPage = () => {
     };
 
     const handleExit = async () => {
-        console.log("나가기 버튼 클릭");
         await logout();
         navigate("/");
     };
 
     const handleRoomEnter = (room) => {
         if (room.status === "IN_PROGRESS") {
-            alert("현재 게임이 진행 중인 방입니다.");
+            toast("현재 게임이 진행 중인 방입니다.");
             return;
         }
 
@@ -46,7 +49,7 @@ const LobbyPage = () => {
     return (
         <div className="flex flex-col h-screen w-screen">
             {/* 상단: 방 목록 + 방 정보 */}
-            <div className="flex h-[60%] border-b border-gray-300">
+            <div className="flex h-[55%] border-b border-gray-300">
                 <div className="w-[63%] border-r p-4 overflow-auto">
                     <h2 className="text-lg font-semibold mb-2">방 목록</h2>
                     <ul className="space-y-2">
@@ -87,7 +90,7 @@ const LobbyPage = () => {
             </div>
 
             {/* 중단: 생성/입장 + 나가기 버튼 */}
-            <div className="flex h-[15%] items-center justify-between px-6 border-b border-gray-300">
+            <div className="flex h-[10%] items-center justify-between px-6 border-b border-gray-300">
                 <div className="space-x-4">
                     <button
                         onClick={() => setShowPopup(true)}
@@ -115,20 +118,15 @@ const LobbyPage = () => {
             </div>
 
             {/* 하단: 채팅 + 접속자 목록 */}
-            <div className="flex h-[25%]">
+            <div className="flex h-[35%]">
                 <div className="w-[70%] border-r">
                     <FixedChatBox chatType="lobby" />
                 </div>
                 <div className="w-[30%] p-4 overflow-y-auto">
                     <h3 className="font-semibold mb-2">👥 로비 접속자</h3>
                     <ul className="space-y-1">
-                        {lobbyUsers.map((u) => (
-                            <li key={u.id} className="flex items-center space-x-2">
-                                {u.avatar && (
-                                    <img src={u.avatar} alt={u.nickname} className="w-6 h-6 rounded-full" />
-                                )}
-                                <span>{u.nickname}</span>
-                            </li>
+                        {lobbyUsers.map(u => (
+                            <li key={u.id}>{u.nickname}</li>
                         ))}
                     </ul>
                     {!lobbyLoading && lobbyUsers.length === 0 && (
@@ -157,7 +155,7 @@ const LobbyPage = () => {
                             setShowPasswordPopup(false);
                             goToRoom(roomToEnter);
                         } else {
-                            alert("비밀번호가 틀렸습니다.");
+                            toast("비밀번호가 틀렸습니다.");
                             setShowPasswordPopup(false);
                         }
                     }}

@@ -2,6 +2,9 @@ import { Server } from 'socket.io';
 import handleLobby from './handlers/lobby.js';
 import handleChat from './handlers/chat.js';
 
+// 연결된 소켓을 저장할 맵 (선택적, 필요시 사용)
+export const socketToUserMap = new Map(); // 사용자 ID와 소켓 ID 매핑
+
 export function setupSocket(server) {
     const io = new Server(server, {
         cors: {

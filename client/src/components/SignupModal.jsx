@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import useAuth from "@/hooks/useAuth";
+import { toast } from "@/context/ToastContext";
 
 const SignupModal = ({ onClose }) => {
   const [userId, setUserId] = useState("");
@@ -10,7 +11,7 @@ const SignupModal = ({ onClose }) => {
 
   const handleSignup = async () => {
     if (!userId || !nickname || !password) {
-      alert("모든 항목을 입력해주세요.");
+      toast("모든 항목을 입력해주세요.");
       return;
     }
 
@@ -18,15 +19,21 @@ const SignupModal = ({ onClose }) => {
       const { success, error } = await signup({ userId, password, nickname });
 
       if (!success) {
-        if (error === "DUPLICATE") alert("ID 또는 닉네임이 이미 사용 중입니다.");
-        else alert("가입 실패: " + error);
+        console.error("에러 사유:", error);
+        if (error === 'DUPLICATE_ID') {
+          toast('이미 사용 중인 아이디입니다.');
+        } else if (error === 'DUPLICATE_NICKNAME') {
+          toast('이미 사용 중인 닉네임입니다.');
+        } else {
+          toast('회원가입 실패: ' + error);
+        }
         return;
       }
 
-      alert("가입 완료! 로그인 해주세요.");
+      toast("가입 완료! 로그인 해주세요.");
       onClose();
     } catch (err) {
-      alert("가입 중 오류 발생: " + err.message);
+      toast("가입 중 오류 발생: " + err.message);
     }
   };
 

@@ -1,76 +1,3 @@
-/*
-import express from "express";
-import { createUser, getUserById } from "../services/userModel.js";
-
-const router = express.Router();
-
-// 회원가입
-router.post("/signup", (req, res) => {
-  const { userId, password, nickname } = req.body;
-  if (!userId || !password || !nickname)
-    return res.status(400).json({ error: "모든 칸을 입력해야함" });
-
-  const result = createUser({ id: userId, password, nickname });
-  if (!result.success) return res.status(409).json({ error: result.error });
-
-  res.json({ success: true });
-});
-
-// 로그인
-router.post("/login", (req, res) => {
-  const { userId, password } = req.body;
-  const user = getUserById(userId);
-  if (!user || user.password !== password)
-    return res.status(401).json({ message: "ID 또는 비밀번호 오류" });
-
-  // 보안을 위해 비밀번호는 제외하고 반환
-  const { password: pw, ...safeUser } = user;
-
-  // 세션에 사용자 정보 저장
-  console.log("세션에 저장된 사용자 정보:", safeUser);
-  req.session.user = user;
-  res.json({ success: true, user: safeUser });
-});
-
-// 사용자 정보 업데이트
-router.put("/update", (req, res) => {
-  //const { userId, ...userData } = req.body;
-  const { userId, ...userData } = req.session.user;
-  if (!userId || !userData)
-    return res.status(400).json({ error: "잘못된 입력 값" });
-
-  const user = getUserById(userId);
-  if (!user)
-    return res.status(404).json({ error: "사용자를 찾을 수 없습니다" });
-
-  // 사용자 정보 업데이트 로직 추가 필요
-  // 예: db.prepare('UPDATE users SET ... WHERE id = ?').run(userData, userId);
-  // ...
-
-  res.json({ success: true });
-});
-
-// 사용자 로그아웃
-router.post("/logout", (req, res) => {
-  //const userId = req.body.userId;
-  const userId = req.session.user.id;
-  try {
-    // updateUserStatus(userId, "OFFLINE");
-    req.session.destroy(err => {
-      if (err) return res.sendStatus(500);
-      res.clearCookie('connect.sid');
-      res.json({ success: true });
-    });
-  } catch (err) {
-    console.error("Logout error:", err);
-    res.status(500).json({ ok: false, message: "Logout failed" });
-  }
-
-});
-
-
-export default router;*/
-
 import express from 'express';
 import { createUser, getUserById } from '../services/userModel.js';
 
@@ -78,13 +5,17 @@ const router = express.Router();
 
 // 회원가입
 router.post('/signup', (req, res) => {
-  const { userId, password, nickname } = req.body;
-  if (!userId || !password || !nickname)
+  const user = req.body;
+  const { userId, password, nickname } = user;
+  if (!userId || !password || !nickname) {
     return res.status(400).json({ error: '모든 칸을 입력해야 합니다.' });
-
+  }
+  // createUser에서 반환된 error 코드를 그대로 전달
   const result = createUser({ id: userId, password, nickname });
-  if (!result.success)
-    return res.status(409).json({ error: result.error });
+  if (!result.success) {
+    // result.error: 'DUPLICATE_ID' | 'DUPLICATE_NICKNAME' | 'DUPLICATE' | 기타 에러 메시지
+    return res.status(409).json({ success: false, error: result.error });
+  }
 
   res.json({ success: true });
 });
@@ -93,15 +24,30 @@ router.post('/signup', (req, res) => {
 router.post('/login', (req, res) => {
   const { userId, password } = req.body;
   const user = getUserById(userId);
-  if (!user || user.password !== password)
-    return res.status(401).json({ message: 'ID 또는 비밀번호 오류' });
+  console.log('로그인 시도:', userId);
+  // 1) 유저가 없거나 비밀번호가 틀리면
+  if (!user || user.password !== password) {
+    return res
+      .status(401)
+      .json({ success: false, message: 'ID 또는 비밀번호 오류' });
+  }
 
-  // 보안을 위해 비밀번호 제거 후 반환
-  const { password: pw, ...safeUser } = user;
+  // 현재 로그인을 시도한 id의 status 가 OFFLINE이 아니면
+  if (user.status !== 'OFFLINE') {
+    return res
+      .status(403)
+      .json({ success: false, message: '이미 로그인되어 있습니다.' });
+  }
+
+  // 3) 정상 로그인 처리
+  const { password: pw, ...safeUser } = user; // 비밀번호 걸러내기
   req.session.user = safeUser;
   console.log('세션에 저장된 사용자 정보:', safeUser);
+
+  // 4) success 플래그와 함께 유저 정보 리턴
   res.json({ success: true, user: safeUser });
 });
+
 
 // 로그아웃
 router.post('/logout', (req, res) => {

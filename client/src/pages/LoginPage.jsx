@@ -2,28 +2,28 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import SignupModal from "@/components/SignupModal";
 import useAuth from "@/hooks/useAuth";
+import { useToast } from '@/context/ToastContext';
 
 const LoginPage = () => {
     const [userId, setUserId] = useState("");
     const [password, setPassword] = useState("");
     const [showSignup, setShowSignup] = useState(false);
     const navigate = useNavigate();
+    const toast = useToast();
 
     const { login } = useAuth();
 
     const handleLogin = async () => {
         if (!userId || !password) {
-            alert("ID와 비밀번호를 입력해주세요.");
+            toast("ID와 비밀번호를 입력해주세요.");
             return;
         }
 
-        try {
-            const user = await login(userId, password);
-            console.log("✅ 로그인 성공한 user:", user);
+        const res = await login(userId, password);
+        if (res.success) {
             navigate("/lobby");
-        } catch (err) {
-            console.error("❌ 로그인 실패:", err.message);
-            alert("로그인 실패: " + err.message);
+        } else {
+            toast("로그인 실패: " + res.message);
         }
     };
 

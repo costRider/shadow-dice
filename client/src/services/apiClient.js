@@ -1,5 +1,30 @@
 // client/src/services/apiClient.js
+import { toast } from '@/context/ToastContext';
+
 const BASE = import.meta.env.VITE_API_URL;
+
+async function handleResponse(res) {
+    const text = await res.text();
+    let data = null;
+    try { data = JSON.parse(text); }
+    catch { /* not JSON, ignore */ }
+
+    if (!res.ok) {
+        // 1) 서버가 내려준 data.message 우선
+        let msg = data?.message;
+        console.error('API Error:', res.status, msg || text);
+        // 2) data.message가 없으면 status 코드별 커스텀 메시지
+        if (!msg) {
+            if (res.status === 404) msg = '요청하신 리소스를 찾을 수 없습니다.';
+            else if (res.status === 401) msg = '권한이 없습니다. 로그인 상태를 확인하세요.';
+            else msg = `서버 오류 (${res.status})`;
+        }
+        // 3) 토스트로 알림
+        toast(msg);
+    }
+
+    return { ok: res.ok, data };
+}
 
 export default {
     post: async (path, payload) => {
@@ -7,39 +32,31 @@ export default {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
-            credentials: 'include', // 쿠키 사용 시
+            credentials: 'include',
         });
-        const data = await res.json();
-        return { ok: res.ok, data };
+        return handleResponse(res);
     },
-    // get, put, delete 등도 유사하게 추가
     get: async (path) => {
         const res = await fetch(`${BASE}${path}`, {
             method: 'GET',
-            credentials: 'include', // 쿠키 사용 시
+            credentials: 'include',
         });
-        const data = await res.json();
-        return { ok: res.ok, data };
+        return handleResponse(res);
     },
     put: async (path, payload) => {
         const res = await fetch(`${BASE}${path}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
-            credentials: 'include', // 쿠키 사용 시
+            credentials: 'include',
         });
-        const data = await res.json();
-        return { ok: res.ok, data };
+        return handleResponse(res);
     },
     delete: async (path) => {
         const res = await fetch(`${BASE}${path}`, {
             method: 'DELETE',
-            credentials: 'include', // 쿠키 사용 시
+            credentials: 'include',
         });
-        const data = await res.json();
-        return { ok: res.ok, data };
+        return handleResponse(res);
     },
 };
-// 이 파일은 API 요청을 처리하는 클라이언트 모듈입니다.
-// API 요청을 보내고 응답을 처리하는 기능을 제공합니다.
-// fetch API를 사용하여 HTTP 요청을 보내고, 응답을 JSON 형식으로 파싱합니다.

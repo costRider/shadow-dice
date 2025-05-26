@@ -45,7 +45,7 @@ export function getAllRooms() {
   return db
     .prepare(
       `
-     SELECT r.*, 
+     SELECT r.*, u.nickname AS hostNickname,
          json_group_array(json_object('id', u.id, 'nickname', u.nickname)) as players
       FROM rooms r
       LEFT JOIN room_players rp ON r.id = rp.roomid
