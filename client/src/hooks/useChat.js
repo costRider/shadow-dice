@@ -49,7 +49,11 @@ export const useChat = (chatType = 'lobby', roomId = null, user) => {
     // 4) 소켓 연결 & 리스너 설정
     useEffect(() => {
         // 최초 진입 시 소켓 연결
-        if (!isConnected) connect();
+        /* if (!isConnected) {
+             console.log('Connecting to chat socket...');
+             connect();
+         }*/
+        if (!isConnected) return;              // ← only consume
 
         if (!socket) return;
 

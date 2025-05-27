@@ -23,3 +23,14 @@ export async function updateUserStatus(userId, status) {
   if (!ok) throw new Error(data.message || '사용자 상태 업데이트 실패');
   return data;
 }
+
+/**
+ * 사용자 전체 정보를 서버에 동기화합니다.
+ * @param {User} userData
+ */
+export async function updateUser(userData) {
+  if (!userData || !userData.id) return null;
+  const { ok, data } = await apiClient.put(`users/${userData.id}`, userData);
+  if (!ok) throw new Error(data.message || '사용자 정보 업데이트 실패');
+  return data;
+}

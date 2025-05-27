@@ -125,8 +125,17 @@ const LobbyPage = () => {
                 <div className="w-[30%] p-4 overflow-y-auto">
                     <h3 className="font-semibold mb-2">👥 로비 접속자</h3>
                     <ul className="space-y-1">
-                        {lobbyUsers.map(u => (
-                            <li key={u.id}>{u.nickname}</li>
+                        {lobbyUsers.map((u) => (
+                            <li
+                                key={u.id}
+                                className="flex items-center space-x-2 cursor-pointer hover:bg-gray-100 p-1 rounded"
+                                onClick={() => {
+                                    toast(`정보 — 닉네임: ${u.nickname} / GP: ${u.gp} / 가입일: ${new Date(u.createdAt).toLocaleDateString()}`);
+                                }}
+                            >
+                                {u.avatar && <img src={u.avatar} className="w-6 h-6 rounded-full" />}
+                                <span>{u.nickname}</span>
+                            </li>
                         ))}
                     </ul>
                     {!lobbyLoading && lobbyUsers.length === 0 && (

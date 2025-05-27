@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import SignupModal from "@/components/SignupModal";
 import useAuth from "@/hooks/useAuth";
 import { useToast } from '@/context/ToastContext';
@@ -8,7 +7,6 @@ const LoginPage = () => {
     const [userId, setUserId] = useState("");
     const [password, setPassword] = useState("");
     const [showSignup, setShowSignup] = useState(false);
-    const navigate = useNavigate();
     const toast = useToast();
 
     const { login } = useAuth();
@@ -20,9 +18,7 @@ const LoginPage = () => {
         }
 
         const res = await login(userId, password);
-        if (res.success) {
-            navigate("/lobby");
-        } else {
+        if (!res.success) {
             toast("로그인 실패: " + res.message);
         }
     };

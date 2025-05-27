@@ -210,7 +210,7 @@ export function updateUserStatus(id, status, socketId = null) {
 
 export function getLobbyUsers() {
   const rows = db.prepare(
-    "SELECT id, nickname, avatar FROM users WHERE status = 'LOBBY'"
+    "SELECT * FROM users WHERE status = 'LOBBY'"
   ).all();
   return rows.map(row => ({
     ...row,

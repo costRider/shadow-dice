@@ -1,5 +1,6 @@
 import express from 'express';
 import { createUser, getUserById } from '../services/userModel.js';
+import { grantDailyGP } from '../services/userService.js';
 
 const router = express.Router();
 
@@ -44,8 +45,16 @@ router.post('/login', (req, res) => {
   req.session.user = safeUser;
   console.log('세션에 저장된 사용자 정보:', safeUser);
 
+  // 2) 오늘분 GP 보상
+  const granted = grantDailyGP(safeUser.id);
+  if (granted) {
+    // 클라이언트에 반영할 safeUser.gp 업데이트
+    safeUser.gp += 100;
+  }
+
   // 4) success 플래그와 함께 유저 정보 리턴
-  res.json({ success: true, user: safeUser });
+  res.json({ success: true, user: safeUser, grantedDailyGP: granted });
+  console.log('로그인 성공:', safeUser);
 });
 
 

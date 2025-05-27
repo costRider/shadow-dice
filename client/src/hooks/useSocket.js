@@ -1,5 +1,5 @@
 // useSocket.js
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import socket from '@/socket/socket';
 
 export function useSocket() {
