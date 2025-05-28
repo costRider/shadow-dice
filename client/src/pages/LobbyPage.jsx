@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import CreateRoomPopup from "@/components/CreateRoomPopup";
 import PasswordPopup from "@/components/auth/PasswordPopup";
@@ -16,9 +16,14 @@ const LobbyPage = () => {
     const [showPasswordPopup, setShowPasswordPopup] = useState(false);
     const [roomToEnter, setRoomToEnter] = useState(null);
     const { logout } = useAuth();
-    const { rooms, create, join } = useRooms();
+    const { rooms, join, fetchAll } = useRooms();
     const { loading: lobbyLoading } = useLobbyUsers();
     const { lobbyUsers } = useContext(UserContext);
+
+    //로비 진입 시 한번만 방 목록 가져오기
+    useEffect(() => {
+        fetchAll();
+    }, []);
 
     const goToRoom = async (room) => {
         await join(room.id);
@@ -42,6 +47,13 @@ const LobbyPage = () => {
         } else {
             goToRoom(room);
         }
+    };
+
+    // 방 생성 직후 자동 입장 + 화면 전환
+    const handleCreated = async (newRoom) => {
+        setShowPopup(false);
+        // 서버에서 이미 방과 host player가 생성되었으니 바로 이동
+        navigate("/gamelobby", { state: { room: newRoom } });
     };
 
 
@@ -92,6 +104,7 @@ const LobbyPage = () => {
             {/* 중단: 생성/입장 + 나가기 버튼 */}
             <div className="flex h-[10%] items-center justify-between px-6 border-b border-gray-300">
                 <div className="space-x-4">
+                    {/* 방 생성 후 팝업 닫기*/}
                     <button
                         onClick={() => setShowPopup(true)}
                         className="bg-green-500 px-6 py-3 rounded text-white hover:bg-green-600"
@@ -148,29 +161,27 @@ const LobbyPage = () => {
             {showPopup && (
                 <CreateRoomPopup
                     onClose={() => setShowPopup(false)}
-                    onCreate={async (roomData) => {
-                        await create(roomData);
-                        setShowPopup(false);
-                    }}
+                    onCreate={handleCreated}
                 />
             )}
 
             {/* 비밀번호 입력 팝업 */}
-            {showPasswordPopup && (
-                <PasswordPopup
-                    onClose={() => setShowPasswordPopup(false)}
-                    onSubmit={(inputPw) => {
-                        if (inputPw === roomToEnter.password) {
-                            setShowPasswordPopup(false);
-                            goToRoom(roomToEnter);
-                        } else {
-                            toast("비밀번호가 틀렸습니다.");
-                            setShowPasswordPopup(false);
-                        }
-                    }}
-                />
-            )}
-        </div>
+            {
+                showPasswordPopup && (
+                    <PasswordPopup
+                        onClose={() => setShowPasswordPopup(false)}
+                        onSubmit={(inputPw) => {
+                            if (inputPw === roomToEnter.password) {
+                                setShowPasswordPopup(false);
+                                goToRoom(roomToEnter);
+                            } else {
+                                toast("비밀번호가 틀렸습니다.");
+                            }
+                        }}
+                    />
+                )
+            }
+        </div >
     );
 };
 

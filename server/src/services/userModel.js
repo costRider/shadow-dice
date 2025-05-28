@@ -22,7 +22,7 @@ export function createUser({ id, password, nickname }) {
           (id, password, nickname, gp, avatar, characters, createdAt)
         VALUES (?, ?, ?, ?, ?, ?, ?)
       `,
-    ).run(id, password, nickname, 5000, avatar, characters, now);
+    ).run(id, password, nickname, 3000, avatar, characters, now);
     return { success: true };
   } catch (err) {
     // UNIQUE 제약 위반 시 id/nickname 구분
@@ -103,6 +103,7 @@ export function getAllUsers() {
   }));
 }
 
+/*
 export function updateUserField(id, field, value) {
   const user = getUserById(id);
   if (!user) return null;
@@ -118,40 +119,7 @@ export function deleteUserField(id, field) {
   db.prepare(`UPDATE users SET ${field} = NULL WHERE id = ?`).run(id);
   return { ...user, [field]: null };
 }
-
-export function getUserInventory(id) {
-  const user = getUserById(id);
-  if (!user) return null;
-  return user.inventory;
-}
-
-export function updateUserInventory(id, inventory) {
-  const user = getUserById(id);
-  if (!user) return null;
-
-  db.prepare("UPDATE users SET inventory = ? WHERE id = ?").run(
-    JSON.stringify(inventory),
-    id,
-  );
-  return { ...user, inventory };
-}
-
-export function updateUserSettings(id, settings) {
-  const user = getUserById(id);
-  if (!user) return null;
-
-  db.prepare("UPDATE users SET settings = ? WHERE id = ?").run(
-    JSON.stringify(settings),
-    id,
-  );
-  return { ...user, settings };
-}
-
-export function getUserSettings(id) {
-  const user = getUserById(id);
-  if (!user) return null;
-  return user.settings;
-}
+*/
 
 export function updateUserAvatar(id, avatar) {
   const user = getUserById(id);
@@ -199,7 +167,15 @@ export function updateUserPassword(id, password) {
   return { ...user, password };
 }
 
-export function updateUserStatus(id, status, socketId = null) {
+export function updateUserStatus(id, status) {
+  console.log(`Updating user ${id} status to ${status}`);
+  const stmt = db.prepare(
+    `UPDATE users SET status = ? WHERE id = ?`
+  );
+  stmt.run(status, id);
+}
+
+export function updateUserStatusWithSocket(id, status, socketId = null) {
   console.log(`Updating user ${id} status to ${status} with socketId ${socketId}`);
   const stmt = db.prepare(
     `UPDATE users SET status = ?, socketId = ? WHERE id = ?`
@@ -218,67 +194,4 @@ export function getLobbyUsers() {
   }));
 }
 
-export function getUserByIdWithPassword(id) {
-  const row = db.prepare("SELECT * FROM users WHERE id = ?").get(id);
-  if (!row) return null;
-  return {
-    ...row,
-    avatar: JSON.parse(row.avatar),
-    characters: JSON.parse(row.characters),
-  };
-}
 
-export function getUserByNicknameWithPassword(nickname) {
-  const row = db
-    .prepare("SELECT * FROM users WHERE nickname = ?")
-    .get(nickname);
-  if (!row) return null;
-  return {
-    ...row,
-    avatar: JSON.parse(row.avatar),
-    characters: JSON.parse(row.characters),
-  };
-}
-
-export function getUserByIdWithPasswordAndNickname(id, nickname) {
-  const row = db
-    .prepare("SELECT * FROM users WHERE id = ? AND nickname = ?")
-    .get(id, nickname);
-  if (!row) return null;
-  return {
-    ...row,
-    avatar: JSON.parse(row.avatar),
-    characters: JSON.parse(row.characters),
-  };
-}
-
-export function getUserByIdWithPasswordAndNicknameAndGp(id, nickname, gp) {
-  const row = db
-    .prepare("SELECT * FROM users WHERE id = ? AND nickname = ? AND gp = ?")
-    .get(id, nickname, gp);
-  if (!row) return null;
-  return {
-    ...row,
-    avatar: JSON.parse(row.avatar),
-    characters: JSON.parse(row.characters),
-  };
-}
-
-export function getUserByIdWithPasswordAndNicknameAndGpAndAvatar(
-  id,
-  nickname,
-  gp,
-  avatar,
-) {
-  const row = db
-    .prepare(
-      "SELECT * FROM users WHERE id = ? AND nickname = ? AND gp = ? AND avatar = ?",
-    )
-    .get(id, nickname, gp, avatar);
-  if (!row) return null;
-  return {
-    ...row,
-    avatar: JSON.parse(row.avatar),
-    characters: JSON.parse(row.characters),
-  };
-}

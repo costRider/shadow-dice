@@ -14,6 +14,7 @@ import GamePage from '@/pages/GamePage';
 // Components
 
 export default function App() {
+
   return (
     <UserProvider>
       <SocketController>

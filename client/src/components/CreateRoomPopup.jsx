@@ -1,10 +1,12 @@
 import React, { useState, useContext } from "react";
 import useRooms from "@/hooks/useRooms";
 import { UserContext } from "@/context/UserContext";
+import { toast } from "@/context/ToastContext";
 
 const CreateRoomPopup = ({ onClose, onCreate }) => {
-  const userdata = useContext(UserContext);
-  const { user } = userdata.user;
+  /*const userdata = useContext(UserContext);
+  const user = userdata.user;*/
+  const { user } = useContext(UserContext);
   const { create } = useRooms();
 
   const [roomName, setRoomName] = useState("");
@@ -12,12 +14,19 @@ const CreateRoomPopup = ({ onClose, onCreate }) => {
   const [selectedMap, setSelectedMap] = useState("기본맵");
   const [isPrivate, setIsPrivate] = useState(false);
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
-    if (!roomName || maxPlayers < 2) {
-      alert("방 제목과 인원을 확인해주세요.");
+    if (!roomName.trim()) {
+      toast("방 제목을 입력해주세요.");
       return;
     }
+    if (maxPlayers < 2) {
+      toast("최소 2명 이상이어야 합니다.");
+      return;
+    }
+
+    setLoading(true);
 
     const newRoom = {
       title: roomName,
@@ -25,23 +34,27 @@ const CreateRoomPopup = ({ onClose, onCreate }) => {
       maxPlayers,
       isPrivate,
       password: isPrivate ? password : "",
-      hostId: user.id,
+      hostId: user.id
     };
 
     try {
       // create(data, userId) 호출
+      console.log('유저:', user);
       const created = await create(newRoom, user);
 
       console.log("방 생성 성공:", created);
       onCreate(created);
+      onClose();
     } catch (err) {
       console.error("방 생성 중 예외 발생:", err);
       alert("방 생성 중 오류가 발생했습니다.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[400px] bg-white border shadow-lg p-5 rounded z-30">
+    <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[400px] bg-sky-50 border shadow-lg p-5 rounded z-30">
       <h2 className="text-lg font-semibold mb-4">🛠 방 만들기</h2>
 
       {/* 방 이름 */}
@@ -51,7 +64,7 @@ const CreateRoomPopup = ({ onClose, onCreate }) => {
           type="text"
           value={roomName}
           onChange={(e) => setRoomName(e.target.value)}
-          className="w-full px-3 py-2 border rounded"
+          className="bg-white w-full px-3 py-2 border rounded"
         />
       </div>
 
@@ -61,7 +74,7 @@ const CreateRoomPopup = ({ onClose, onCreate }) => {
         <select
           value={maxPlayers}
           onChange={(e) => setMaxPlayers(parseInt(e.target.value))}
-          className="w-full px-3 py-2 border rounded"
+          className="bg-white w-full px-3 py-2 border rounded"
         >
           {[...Array(7)].map((_, i) => {
             const num = i + 2;
@@ -81,7 +94,7 @@ const CreateRoomPopup = ({ onClose, onCreate }) => {
           onClick={() =>
             setSelectedMap(selectedMap === "기본맵" ? "숲속맵" : "기본맵")
           }
-          className="w-full px-3 py-2 border rounded bg-gray-100 hover:bg-gray-200"
+          className="bg-white w-full px-3 py-2 border rounded bg-gray-100 hover:bg-gray-200"
         >
           선택된 맵: {selectedMap}
         </button>
@@ -116,7 +129,7 @@ const CreateRoomPopup = ({ onClose, onCreate }) => {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-3 py-2 border rounded"
+            className="bg-white w-full px-3 py-2 border rounded"
           />
         </div>
       )}
@@ -133,7 +146,7 @@ const CreateRoomPopup = ({ onClose, onCreate }) => {
           onClick={handleSubmit}
           className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
         >
-          생성
+          {loading ? "생성 중..." : "생성"}
         </button>
       </div>
     </div>

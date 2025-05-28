@@ -1,5 +1,5 @@
 
-import { updateUserStatus, getLobbyUsers } from '../../services/userModel.js';
+import { updateUserStatusWithSocket, getLobbyUsers } from '../../services/userModel.js';
 import { socketToUserMap } from '../socket.js';
 
 function handleLobby(io, socket) {
@@ -22,8 +22,11 @@ function handleLobby(io, socket) {
         socket.data.userId = user.id;
         socket.data.user = user; // 사용자 정보 저장
         socket.data.hasLeft = false; // 나간 상태 초기화
+        // 1) 로비 네임스페이스(또는 방)에 참여
+        socket.join('lobby');
+
         console.log(`🔌 User ${user.nickname} (${user.id}) is entering the lobby...`);
-        await updateUserStatus(user.id, 'LOBBY', socket.id);
+        await updateUserStatusWithSocket(user.id, 'LOBBY', socket.id);
         console.log(`🔌 User ${user.nickname} (${user.id}) entered the lobby with socket ID: ${socket.id}`);
         const users = await getLobbyUsers();
         console.log('🔌 Lobby users:', users);
@@ -33,13 +36,15 @@ function handleLobby(io, socket) {
     socket.on('leave-lobby', async (data) => {
         // …
         console.log('서버에서 leave-lobby 수신:', data);
-        if (socket.data.hasLeft) return; // 이미 나간 경우 중복 처리 방지
-        socket.data.hasLeft = true; // 나간 상태로 표시
-        socketToUserMap.delete(socket.data.userId); // 소켓 ID 제거
-        await updateUserStatus(socket.data.userId, 'OFFLINE', null);
-        const users = await getLobbyUsers();
-        io.emit('lobby-users', users);
-        console.log(`🔌 User ${socket.data.userId} disconnected and status updated to OFFLINE`);
+        if (data.status == 'LOBBY') {
+            if (socket.data.hasLeft) return; // 이미 나간 경우 중복 처리 방지
+            socket.data.hasLeft = true; // 나간 상태로 표시
+            socketToUserMap.delete(socket.data.userId); // 소켓 ID 제거
+            await updateUserStatusWithSocket(socket.data.userId, 'OFFLINE', null);
+            const users = await getLobbyUsers();
+            io.emit('lobby-users', users);
+            console.log(`🔌 User ${socket.data.userId} disconnected and status updated to OFFLINE`);
+        }
     });
 
     socket.on('disconnect', async () => {
@@ -57,7 +62,7 @@ function handleLobby(io, socket) {
 
         if (userId) {
             socketToUserMap.delete(userId);
-            await updateUserStatus(userId, 'OFFLINE', null);
+            await updateUserStatusWithSocket(userId, 'OFFLINE', null);
             const users = await getLobbyUsers();
             io.emit('lobby-users', users);
             console.log(`🔌 User ${userId} disconnected and status updated to OFFLINE`);

@@ -20,11 +20,18 @@ export async function getRooms() {
  * @param {string} [roomData.password]
  * @returns {Promise<Room>}
  */
+/*
 export async function createRoom(roomData) {
   const { ok, data } = await apiClient.post('rooms/create', roomData);
   if (!ok) throw new Error(data.message || '방 생성 실패');
   return data;
+}*/
+export async function createRoom(data) {
+  const { ok, data: room } = await apiClient.post("rooms/create", data);
+  if (!ok) throw new Error(room.message || "방 생성 실패");
+  return room;
 }
+
 
 /**
  * 방 입장
@@ -32,10 +39,16 @@ export async function createRoom(roomData) {
  * @param {string} userId
  * @returns {Promise<Room>}
  */
+/*
 export async function joinRoom(roomId, userId) {
   const { ok, data } = await apiClient.post(`rooms/${roomId}/join`, { userId });
   if (!ok) throw new Error(data.message || '방 입장 실패');
   return data;
+}*/
+export async function joinRoom(roomId) {
+  const { ok, data: room } = await apiClient.post(`rooms/${roomId}/join`);
+  if (!ok) throw new Error(room.message || "방 입장 실패");
+  return room;
 }
 
 /**
@@ -45,8 +58,14 @@ export async function joinRoom(roomId, userId) {
  * @returns {Promise<Room>}
  * 
  */
+/*
 export async function leaveRoom(roomId, userId) {
   const { ok, data } = await apiClient.post(`rooms/${roomId}/leave`, { userId });
+  if (!ok) throw new Error(data.message || '방 나가기 실패');
+  return data;
+}*/
+export async function leaveRoom(roomId) {
+  const { ok, data } = await apiClient.post(`rooms/${roomId}/leave`);
   if (!ok) throw new Error(data.message || '방 나가기 실패');
   return data;
 }

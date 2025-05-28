@@ -6,7 +6,7 @@ import { useSocket } from './useSocket';
 export default function useLobbyUsers() {
     const { user, setLobbyUsers } = useContext(UserContext);
     const [loading, setLoading] = useState(true);
-    const { socket, isConnected, connect } = useSocket();
+    const { socket, isConnected } = useSocket();
 
     useEffect(() => {
         /*//if (!user || !isConnected) return;

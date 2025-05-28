@@ -1,130 +1,99 @@
 import { useState, useEffect, useCallback } from 'react';
-import {
-    getRooms,
-    createRoom,
-    joinRoom,
-    readyRoom,
-    startRoom,
-    leaveRoom,
-    // optionally: leaveRoom
-} from '@/services/rooms';
+import { getRooms, createRoom, joinRoom, readyRoom, startRoom, leaveRoom } from '@/services/rooms';
 import { updateUserStatus } from '@/services/user';
+import { useSocket } from './useSocket';
 
-/**
- * useRooms 훅: 방 목록 조회 및 조작 로직을 관리합니다.
- */
 export default function useRooms() {
     const [rooms, setRooms] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const { socket } = useSocket();
 
-    // 방 목록 전체 조회
     const fetchAll = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
             const list = await getRooms();
-            console.log('🧪 getRooms 결과:', list);
-            console.log('🧪 isArray?', Array.isArray(list));
             setRooms(list);
         } catch (err) {
-            console.error('fetchAll rooms failed:', err);
             setError(err);
         } finally {
             setLoading(false);
         }
     }, []);
 
-    // 방장 조회
-    const fetchHost = useCallback(async (roomId) => {
-        setError(null);
-        try {
-            const room = rooms.find(r => r.id === roomId);
-            if (!room) throw new Error('방을 찾을 수 없습니다.');
-            return room.host;
-        } catch (err) {
-            console.error('fetchHost failed:', err);
-            setError(err);
-            throw err;
-        }
-    }, [rooms]);
+    useEffect(() => {
+        // 1) 최초 방 목록 로드
+        fetchAll();
 
-    // 방 생성
-    const create = useCallback(async (roomData, user) => {
+        // 2) 소켓으로부터 방 목록 변경 이벤트 받기
+        socket.on("room-list-changed", newList => {
+            setRooms(newList);
+        });
+
+        return () => {
+            socket.off("room-list-changed");
+        };
+    }, [fetchAll]);
+
+    const create = useCallback(async (roomData) => {
         setError(null);
         try {
             const newRoom = await createRoom(roomData);
-            await updateUserStatus(user.id, 'IN_ROOM');
-            setRooms(prev => [...prev, newRoom]);
+            await updateUserStatus('IN_ROOM');            // status만 전달
+            // setRooms는 socket 이벤트로 갱신되므로 생략해도 무방
             return newRoom;
         } catch (err) {
-            console.error('createRoom failed:', err);
             setError(err);
             throw err;
         }
     }, []);
 
-    // 방 입장
-    const join = useCallback(async (roomId, user) => {
+    const join = useCallback(async (roomId) => {
         setError(null);
         try {
-            await updateUserStatus(user.id, 'IN_ROOM');
-            const updatedRoom = await joinRoom(roomId, user.id);
-            setRooms(prev => prev.map(r => r.id === roomId ? updatedRoom : r));
-            return updatedRoom;
+            await updateUserStatus('IN_ROOM');
+            const updated = await joinRoom(roomId);
+            return updated;
         } catch (err) {
-            console.error('joinRoom failed:', err);
             setError(err);
             throw err;
         }
     }, []);
 
-    // 방 나가기 (추가 필요)
-    const leave = useCallback(async (roomId, user) => {
+    const leave = useCallback(async (roomId) => {
         setError(null);
         try {
-            await leaveRoom(roomId, user.id);
-            setRooms(prev => prev.filter(r => r.id !== roomId));
+            await leaveRoom(roomId);
+            await updateUserStatus('LOBBY');
             return true;
         } catch (err) {
-            console.error('leaveRoom failed:', err);
             setError(err);
             throw err;
         }
     }, []);
 
-    // 준비 상태 토글
-    const ready = useCallback(async (roomId, user, isReady) => {
+    const ready = useCallback(async (roomId, isReady) => {
         setError(null);
         try {
-            const updatedRoom = await readyRoom(roomId, user.id, isReady);
-            setRooms(prev => prev.map(r => r.id === roomId ? updatedRoom : r));
-            return updatedRoom;
+            const updated = await readyRoom(roomId, isReady);
+            return updated;
         } catch (err) {
-            console.error('readyRoom failed:', err);
             setError(err);
             throw err;
         }
     }, []);
 
-    // 게임 시작 (호스트만)
     const start = useCallback(async (roomId) => {
         setError(null);
         try {
-            const updatedRoom = await startRoom(roomId);
-            setRooms(prev => prev.map(r => r.id === roomId ? updatedRoom : r));
-            return updatedRoom;
+            const updated = await startRoom(roomId);
+            return updated;
         } catch (err) {
-            console.error('startRoom failed:', err);
             setError(err);
             throw err;
         }
     }, []);
-
-    // initial fetch
-    useEffect(() => {
-        fetchAll();
-    }, [fetchAll]);
 
     return {
         rooms,
@@ -133,9 +102,8 @@ export default function useRooms() {
         fetchAll,
         create,
         join,
+        leave,
         ready,
         start,
-        leave,
-        // leave: useCallback(async (roomId) => { /* ... */ }, []),
     };
 }
