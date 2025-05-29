@@ -5,8 +5,10 @@ import {
   getRoomById,
   updateRoomStatus,
   addPlayerToRoom,
+  leaveRoom,
   setPlayerReady,
 } from "../services/roomModel.js";
+import { updateUserStatus } from '../services/userModel.js';
 import { roomEvents } from "../events.js";
 
 import authenticate from '../middleware/authenticate.js';
@@ -52,6 +54,7 @@ router.post(
         password,
         hostId,
       });
+      await updateUserStatus(req.user.id, 'IN_ROOM');
       roomEvents.emit("list-changed");
       res.json({ room });
     } catch (err) {
@@ -82,15 +85,16 @@ router.post(
 
 
 // 방 나가기기
-router.post("/leave", (req, res) => {
-  const { roomId, userId } = req.body;
+router.post("/:roomId/leave", authenticate, async (req, res, next) => {
   try {
-    leaveRoom(roomId, userId);
+    const userId = req.user.id;
+    const { roomId } = req.params;
+    console.log('방 나가기 유저: ', userId, '방 나가기 룸: ', roomId)
+    await leaveRoom(roomId, userId);
     roomEvents.emit("list-changed");
     res.json({ ok: true });
   } catch (err) {
-    console.error("leaveRoom error:", err);
-    res.status(500).json({ ok: false, message: "방 나가기 실패" });
+    next(err);
   }
 });
 

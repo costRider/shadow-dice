@@ -40,8 +40,6 @@ export default function useRooms() {
         setError(null);
         try {
             const newRoom = await createRoom(roomData);
-            await updateUserStatus('IN_ROOM');            // status만 전달
-            // setRooms는 socket 이벤트로 갱신되므로 생략해도 무방
             return newRoom;
         } catch (err) {
             setError(err);

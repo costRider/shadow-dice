@@ -131,9 +131,9 @@ export function addPlayerToRoom(roomId, userId) {
 // 유저 방 나가기
 // 방에 유저가 없으면 방 삭제
 export function leaveRoom(roomId, userId) {
-  db.prepare(`DELETE FROM room_players WHERE room_id = ? AND user_id = ?`).run(roomId, userId);
+  db.prepare(`DELETE FROM room_players WHERE roomId = ? AND userId = ?`).run(roomId, userId);
 
-  const remaining = db.prepare(`SELECT COUNT(*) as count FROM room_players WHERE room_id = ?`).get(roomId);
+  const remaining = db.prepare(`SELECT COUNT(*) as count FROM room_players WHERE roomId = ?`).get(roomId);
 
   if (remaining.count === 0) {
     db.prepare(`DELETE FROM rooms WHERE id = ?`).run(roomId);

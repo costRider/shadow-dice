@@ -1,16 +1,38 @@
 import { useLocation, useNavigate } from "react-router-dom";
+import { useState, useContext, useEffect } from "react";
+import useRooms from "@/hooks/useRooms";    // leave 훅
+import { UserContext } from "@/context/UserContext";
 
 const GameLobbyPage = () => {
+
+    const { user } = useContext(UserContext);
+    const { leave } = useRooms();
     const location = useLocation();
     const navigate = useNavigate();
     const room = location.state?.room;
+    const [isLeaving, setIsLeaving] = useState(false);
 
-    const toggleReady = async () => {
-        const next = !isReady;
-        await readyRoomAPI(room.id, user.userId, next);
-        setIsReady(next);
+    const handleExitToLobby = async () => {
+        if (!room) return;
+        setIsLeaving(true);
+        try {
+            console.log('룸ID:', room);
+            await leave(room.id);
+            // leave 성공 → 로비로 이동
+            navigate("/lobby");
+        } catch (err) {
+            console.error("방 나가기 실패:", err);
+            // 필요시 토스트 알림
+        }
     };
 
+    /*
+        const toggleReady = async () => {
+            const next = !isReady;
+            await readyRoomAPI(room.id, user.userId, next);
+            setIsReady(next);
+        };
+    */
     return (
         <div className="flex flex-col h-screen w-screen bg-gray-100">
             {/* 상단 75% */}
@@ -34,7 +56,7 @@ const GameLobbyPage = () => {
                     {/* 하단: 방 정보 */}
                     <div className="h-[30%] p-4 text-sm">
                         <h3 className="font-semibold mb-2">📋 방 정보</h3>
-                        <p>방 이름: {room?.roomName}</p>
+                        <p>방 이름: {room?.title}</p>
                         <p>맵: {room?.selectedMap}</p>
                         <p>인원: {room?.maxPlayers}명</p>
                         <p>형태: {room?.isPrivate ? "🔒 비공개" : "🌐 공개"}</p>
@@ -73,7 +95,8 @@ const GameLobbyPage = () => {
                         </div>
                         <div className="w-[10%] text-right">
                             <button
-                                onClick={() => navigate("/lobby")}
+                                onClick={handleExitToLobby}
+                                disabled={isLeaving}
                                 className="text-red-500 hover:underline text-sm"
                             >
                                 ❌ 나가기

@@ -27,9 +27,12 @@ export async function createRoom(roomData) {
   return data;
 }*/
 export async function createRoom(data) {
-  const { ok, data: room } = await apiClient.post("rooms/create", data);
-  if (!ok) throw new Error(room.message || "방 생성 실패");
-  return room;
+  // 서버 응답: { room: { id, title, … } }
+  const { ok, data: payload } = await apiClient.post("rooms/create", data);
+  if (!ok) throw new Error(payload.message || "방 생성 실패");
+
+  // payload.room 에 실제 방 객체가 들어 있으므로
+  return payload.room;
 }
 
 

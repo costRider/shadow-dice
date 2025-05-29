@@ -30,6 +30,7 @@ function handleLobby(io, socket) {
         console.log(`🔌 User ${user.nickname} (${user.id}) entered the lobby with socket ID: ${socket.id}`);
         const users = await getLobbyUsers();
         console.log('🔌 Lobby users:', users);
+        console.log('Socket.room:', socket.rooms)
         io.emit('lobby-users', users);
     });
 
@@ -41,10 +42,10 @@ function handleLobby(io, socket) {
             socket.data.hasLeft = true; // 나간 상태로 표시
             socketToUserMap.delete(socket.data.userId); // 소켓 ID 제거
             await updateUserStatusWithSocket(socket.data.userId, 'OFFLINE', null);
-            const users = await getLobbyUsers();
-            io.emit('lobby-users', users);
             console.log(`🔌 User ${socket.data.userId} disconnected and status updated to OFFLINE`);
         }
+        const users = await getLobbyUsers();
+        io.emit('lobby-users', users);
     });
 
     socket.on('disconnect', async () => {
