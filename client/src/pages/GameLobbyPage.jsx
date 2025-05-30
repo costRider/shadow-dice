@@ -1,23 +1,46 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { useState, useContext, useEffect } from "react";
-import useRooms from "@/hooks/useRooms";    // leave 훅
-import { UserContext } from "@/context/UserContext";
+import { useState, useEffect } from "react";
+import useGameLobby from "@/hooks/useGameLobby";
+import { fetchRoomPlayers } from "@/services/rooms";
+import { useRoom } from "@/context/RoomContext"
+import userGameLobbyUsers from "@/hooks/userGameLobbyUsers";
 
 const GameLobbyPage = () => {
 
-    const { user } = useContext(UserContext);
-    const { leave } = useRooms();
+    const { leave } = useGameLobby();
     const location = useLocation();
     const navigate = useNavigate();
+    const { gameroom,
+        players,
+        setRoom,
+        setPlayers,
+        setMyCharacter,
+        setReady,
+        loadPlayers, } = useRoom();
+    const roomId = gameroom?.id;
     const room = location.state?.room;
     const [isLeaving, setIsLeaving] = useState(false);
+
+    useEffect(() => {
+        if (location.state?.room) {
+            setRoom(location.state.room);
+        } else if (!gameroom) {
+            navigate("/lobby");
+        }
+    }, []);
+
+    useEffect(() => {
+        if (roomId) loadPlayers(roomId);
+    }, [roomId]);
+
+    userGameLobbyUsers(roomId);
 
     const handleExitToLobby = async () => {
         if (!room) return;
         setIsLeaving(true);
         try {
-            console.log('룸ID:', room);
-            await leave(room.id);
+            console.log('룸:', roomId);
+            await leave(roomId);
             // leave 성공 → 로비로 이동
             navigate("/lobby");
         } catch (err) {
@@ -29,7 +52,7 @@ const GameLobbyPage = () => {
     /*
         const toggleReady = async () => {
             const next = !isReady;
-            await readyRoomAPI(room.id, user.userId, next);
+            await readyRoomAPI(roomId, user.userId, next);
             setIsReady(next);
         };
     */
@@ -56,10 +79,10 @@ const GameLobbyPage = () => {
                     {/* 하단: 방 정보 */}
                     <div className="h-[30%] p-4 text-sm">
                         <h3 className="font-semibold mb-2">📋 방 정보</h3>
-                        <p>방 이름: {room?.title}</p>
-                        <p>맵: {room?.selectedMap}</p>
-                        <p>인원: {room?.maxPlayers}명</p>
-                        <p>형태: {room?.isPrivate ? "🔒 비공개" : "🌐 공개"}</p>
+                        <p>방 이름: {gameroom?.title}</p>
+                        <p>맵: {gameroom?.selectedMap}</p>
+                        <p>인원: {gameroom?.maxPlayers}명</p>
+                        <p>형태: {gameroom?.isPrivate ? "🔒 비공개" : "🌐 공개"}</p>
                     </div>
                 </div>
 
@@ -133,8 +156,11 @@ const GameLobbyPage = () => {
                 <div className="w-[20%] p-4 border-l text-sm">
                     <h4 className="font-semibold mb-2">현재 접속자</h4>
                     <ul className="space-y-1">
-                        <li>🟢 {room?.hostName || "방장"}</li>
-                        <li>🟢 게스트1</li>
+                        {players.map((player) => (
+                            <li key={player.id} className="p-2 border rounded bg-white">
+                                {player.nickname}
+                            </li>
+                        ))}
                     </ul>
                 </div>
             </div>

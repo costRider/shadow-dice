@@ -73,6 +73,14 @@ export async function leaveRoom(roomId) {
   return data;
 }
 
+//방 사용자 목록 
+export async function fetchRoomPlayers(roomId) {
+  const { ok, data } = await apiClient.get(`rooms/${roomId}/players`);
+  if (!ok) throw new Error(data.message || '방 참여자 정보를 불러오지 못했습니다.');
+  return data.players;
+}
+
+
 /**
  * 준비 상태 토글
  * @param {string} roomId

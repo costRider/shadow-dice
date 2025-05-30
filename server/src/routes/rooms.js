@@ -6,6 +6,7 @@ import {
   updateRoomStatus,
   addPlayerToRoom,
   leaveRoom,
+  getRoomUserInfo,
   setPlayerReady,
 } from "../services/roomModel.js";
 import { updateUserStatus } from '../services/userModel.js';
@@ -71,12 +72,15 @@ router.post(
     try {
       const userId = req.user.id;           // 세션 기반
       const { roomId } = req.params;
-
+      const roomCheck = getRoomById(roomId);
+      if (!roomCheck) {
+        return res.status(404).json({ error: "방이 존재하지 않습니다." });
+      } else {
+        await addPlayerToRoom(roomId, userId);
+        const room = getRoomById(roomId);
+        return res.json(room);
+      }
       // 서비스 레이어에서 이미 중복 입장 방지 로직, 공개/비공개 비밀번호 검증 등을 처리
-      await addPlayerToRoom(roomId, userId);
-      const room = getRoomById(roomId);
-      roomEvents.emit("list-changed");
-      res.json(room);
     } catch (err) {
       next(err);
     }
@@ -93,6 +97,19 @@ router.post("/:roomId/leave", authenticate, async (req, res, next) => {
     await leaveRoom(roomId, userId);
     roomEvents.emit("list-changed");
     res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// 방 접속자 목록 조회
+router.get('/:roomId/players', authenticate, (req, res, next) => {
+  try {
+    const { roomId } = req.params;
+    console.log('접속자 목록 요청 방 ID:', roomId);
+    const players = getRoomUserInfo(roomId);
+    console.log('방 접속자 목록:', players)
+    res.json({ ok: true, players });
   } catch (err) {
     next(err);
   }

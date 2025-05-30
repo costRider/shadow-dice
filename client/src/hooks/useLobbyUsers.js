@@ -9,14 +9,6 @@ export default function useLobbyUsers() {
     const { socket, isConnected } = useSocket();
 
     useEffect(() => {
-        /*//if (!user || !isConnected) return;
-        if (!user) return;
-        // 소켓 연결이 안 되어 있으면 연결 시도
-        if (!isConnected) {
-            console.log('Connecting to lobby socket...');
-            connect();
-            return;
-        }*/
 
         if (!user || !isConnected) return;
         if (!socket) {

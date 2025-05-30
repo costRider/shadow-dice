@@ -133,14 +133,46 @@ export function addPlayerToRoom(roomId, userId) {
 export function leaveRoom(roomId, userId) {
   db.prepare(`DELETE FROM room_players WHERE roomId = ? AND userId = ?`).run(roomId, userId);
 
-  const remaining = db.prepare(`SELECT COUNT(*) as count FROM room_players WHERE roomId = ?`).get(roomId);
+  const remainingUsers = db.prepare(`
+    SELECT userId FROM room_players WHERE roomId = ?
+  `).all(roomId);
 
-  if (remaining.count === 0) {
+  if (remainingUsers.length === 0) {
     db.prepare(`DELETE FROM rooms WHERE id = ?`).run(roomId);
-    console.log(`🗑️  Room ${roomId} deleted because it became empty.`);
+    console.log(`🗑️ Room ${roomId} deleted because it became empty.`);
+    return { newHostId: null };
   }
+
+  const room = db.prepare(`SELECT hostId FROM rooms WHERE id = ?`).get(roomId);
+  if (room.hostId === userId) {
+    const newHostId = remainingUsers[0].userId;
+    db.prepare(`UPDATE rooms SET hostId = ? WHERE id = ?`).run(newHostId, roomId);
+    console.log(`👑 Host changed to ${newHostId} in room ${roomId}`);
+    return { newHostId };
+  }
+
+  return { newHostId: null }; // host 변경 없음
+
 }
 
+//GameLobby(방) 접속자 목록
+export function getRoomPlayers(roomId) {
+  return db.prepare(`
+    SELECT users.id, users.nickname
+    FROM room_players
+    JOIN users ON users.id = room_players.userId
+    WHERE room_players.roomId = ?
+  `).all(roomId);
+}
+
+export function getRoomUserInfo(roomId) {
+  return db.prepare(`
+      SELECT u.id, u.nickname, rp.isReady, rp.selectedCharacter, u.characters
+      FROM room_players rp
+      JOIN users u ON u.id = rp.userId
+      WHERE rp.roomId = ?
+    `).all(roomId);
+}
 
 // 준비 상태 변경
 export function setPlayerReady(roomId, userId, isReady) {

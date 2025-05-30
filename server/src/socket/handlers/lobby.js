@@ -49,7 +49,7 @@ function handleLobby(io, socket) {
     });
 
     socket.on('disconnect', async () => {
-        // …\
+        // 사용자 강제종료 x 버튼 또는 탭 종료했을 때 
         console.log('서버에서 disconnect 수신');
         // 소켓ID를 통해 사용자 ID를 조회
         const userId = socket.data.userId || socketToUserMap.get(socket.id);
@@ -62,6 +62,14 @@ function handleLobby(io, socket) {
         console.log(`🔌 User ID from socket data on disconnect: ${userId}`)
 
         if (userId) {
+            //게임 대기실 일 때(나가기 그대로 적용?leave-room )
+
+            //인게임 일 때
+
+            //상점 일 때 
+
+            //로비 일 때
+            //소켓 데이터 삭제, 유저 OFFLINE 및 로비 사용자 Update 
             socketToUserMap.delete(userId);
             await updateUserStatusWithSocket(userId, 'OFFLINE', null);
             const users = await getLobbyUsers();

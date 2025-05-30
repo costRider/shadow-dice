@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import CreateRoomPopup from "@/components/CreateRoomPopup";
 import PasswordPopup from "@/components/auth/PasswordPopup";
 import useRooms from "@/hooks/useRooms";
+import useGameLobby from "@/hooks/useGameLobby";
 import useAuth from "@/hooks/useAuth";
 import useLobbyUsers from "@/hooks/useLobbyUsers";
 import FixedChatBox from "@/components/lobby/ChatBox";
@@ -16,7 +17,8 @@ const LobbyPage = () => {
     const [showPasswordPopup, setShowPasswordPopup] = useState(false);
     const [roomToEnter, setRoomToEnter] = useState(null);
     const { logout } = useAuth();
-    const { rooms, join, fetchAll } = useRooms();
+    const { rooms, fetchAll } = useRooms();
+    const { join } = useGameLobby();
     const { loading: lobbyLoading } = useLobbyUsers();
     const { lobbyUsers } = useContext(UserContext);
 
@@ -24,6 +26,13 @@ const LobbyPage = () => {
     useEffect(() => {
         fetchAll();
     }, []);
+
+    useEffect(() => {
+        if (selectedRoom && !rooms.find(r => r.id === selectedRoom.id)) {
+            toast("🫰선택하신 방이 타노스 당했습니다.");
+            setSelectedRoom(null);
+        }
+    }, [rooms, selectedRoom]);
 
     const goToRoom = async (room) => {
         await join(room.id);
@@ -36,8 +45,9 @@ const LobbyPage = () => {
     };
 
     const handleRoomEnter = (room) => {
+
         if (room.status === "IN_PROGRESS") {
-            toast("현재 게임이 진행 중인 방입니다.");
+            toast("✋이미 질펀하게 놀고 있는 방입니다.");
             return;
         }
 

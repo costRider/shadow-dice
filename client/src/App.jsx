@@ -5,6 +5,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { UserProvider } from '@/context/UserContext';
 import { ToastProvider } from '@/context/ToastContext';
 import { SocketController } from '@/components/controller/SocketController';
+import { RoomProvider } from '@/context/RoomContext';
 
 // Pages
 import LoginPage from '@/pages/LoginPage';
@@ -20,13 +21,15 @@ export default function App() {
       <SocketController>
         <ToastProvider>
           <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<LoginPage />} />
-              <Route path="/lobby" element={<LobbyPage />} />
-              <Route path="/gamelobby" element={<GameLobby />} />
-              <Route path="/game" element={<GamePage />} />
-              {/* 추가적인 라우트가 필요하면 여기에 작성 */}
-            </Routes>
+            <RoomProvider>
+              <Routes>
+                <Route path="/" element={<LoginPage />} />
+                <Route path="/lobby" element={<LobbyPage />} />
+                <Route path="/gamelobby" element={<GameLobby />} />
+                <Route path="/game" element={<GamePage />} />
+                {/* 추가적인 라우트가 필요하면 여기에 작성 */}
+              </Routes>
+            </RoomProvider>
           </BrowserRouter>
         </ToastProvider>
       </SocketController>
