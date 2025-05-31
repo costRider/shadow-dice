@@ -51,6 +51,11 @@ const LobbyPage = () => {
             return;
         }
 
+        if ((room.players?.length ?? 0) >= room.maxPlayers) {
+            toast("⚠️ 들어갈 자리가 없습니다!");
+            return;
+        }
+
         if (room.isPrivate) {
             setRoomToEnter(room);
             setShowPasswordPopup(true);

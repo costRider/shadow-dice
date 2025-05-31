@@ -76,6 +76,7 @@ router.post(
       if (!roomCheck) {
         return res.status(404).json({ error: "방이 존재하지 않습니다." });
       } else {
+        if (roomCheck.players.length >= roomCheck.maxPlayers) return res.status(400).json({ message: "방 정원이 가득 찼습니다." });
         await addPlayerToRoom(roomId, userId);
         const room = getRoomById(roomId);
         return res.json(room);

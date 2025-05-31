@@ -183,3 +183,13 @@ export function setPlayerReady(roomId, userId, isReady) {
   `,
   ).run(isReady ? 1 : 0, roomId, userId);
 }
+
+//사용자 ID로 룸 정보 get
+export function getRoomByUserId(userId) {
+  db.prepare(`
+    SELECT roomId, userId, isReady, selectedCharacter
+    FROM room_players WHERE userId = ?
+    `
+  ).all(userId);
+
+}

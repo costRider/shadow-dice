@@ -4,6 +4,7 @@ import useGameLobby from "@/hooks/useGameLobby";
 import { fetchRoomPlayers } from "@/services/rooms";
 import { useRoom } from "@/context/RoomContext"
 import userGameLobbyUsers from "@/hooks/userGameLobbyUsers";
+import FixedChatBox from "@/components/lobby/ChatBox";
 
 const GameLobbyPage = () => {
 
@@ -130,30 +131,14 @@ const GameLobbyPage = () => {
             </div>
 
             {/* 하단 25% */}
-            <div className="flex h-[25%] border-t bg-white">
-                {/* 좌: 채팅 */}
-                <div className="w-[80%] p-4 flex flex-col">
-                    <div className="flex-1 overflow-y-auto text-sm space-y-1">
-                        <div className="bg-blue-100 rounded px-3 py-1 self-end">
-                            나: 안녕하세요
-                        </div>
-                        <div className="bg-gray-200 rounded px-3 py-1 self-start">
-                            유저1: 반갑습니다
-                        </div>
-                    </div>
-                    <div className="mt-2 flex gap-2">
-                        <input
-                            type="text"
-                            className="flex-1 border px-3 py-2 rounded"
-                            placeholder="채팅 입력..."
-                        />
-                        <button className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-                            전송
-                        </button>
-                    </div>
+            <div className="flex h-[25%] border-t">
+                {/* 좌측: 채팅창 */}
+                <div className="w-[80%]">
+                    <FixedChatBox chatType="room" roomId={roomId} className="h-full" />
                 </div>
-                {/* 우: 접속자 목록 */}
-                <div className="w-[20%] p-4 border-l text-sm">
+
+                {/* 우측: 접속자 목록 */}
+                <div className="w-[20%] p-4 border-l text-sm bg-white overflow-y-auto">
                     <h4 className="font-semibold mb-2">현재 접속자</h4>
                     <ul className="space-y-1">
                         {players.map((player) => (
