@@ -167,11 +167,21 @@ export function getRoomPlayers(roomId) {
 
 export function getRoomUserInfo(roomId) {
   return db.prepare(`
-      SELECT u.id, u.nickname, rp.isReady, rp.selectedCharacter, u.characters
+      SELECT u.id, u.nickname, rp.isReady, rp.selectedCharacter
       FROM room_players rp
       JOIN users u ON u.id = rp.userId
       WHERE rp.roomId = ?
     `).all(roomId);
+}
+
+//사용자 보유 캐릭터 목록 전달
+export function getUserCharacterList(userId) {
+  return db.prepare(`
+      SELECT c.id, c.name, c.move, c.attack, c.def, c.int, c.type, c.ability, c.skin, c.cost
+      FROM characters c
+      JOIN users_characters uc ON c.id = uc.character_id
+      WHERE uc.user_id = ?
+    `).all(userId);
 }
 
 // 준비 상태 변경

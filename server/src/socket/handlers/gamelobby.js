@@ -1,15 +1,32 @@
-import { getRoomUserInfo, leaveRoom } from '../../services/roomModel.js'
+import { getRoomUserInfo, leaveRoom, getUserCharacterList } from '../../services/roomModel.js';
 import { updateUserStatusWithSocket } from '../../services/userModel.js';
 import { roomEvents } from "../../events.js";
 
 function handleGameLobby(io, socket) {
 
     socket.on("join-room", async (roomId) => {
-        socket.join(roomId);
-        socket.data.roomId = roomId;
-        const users = await getRoomUserInfo(roomId); // DB 또는 메모리에서 조회
-        console.log('현재 방 입장 후 사용자 정보:', users);
-        io.to(roomId).emit("room-users", users);
+        try {
+            /*
+            if (roomId && socket.rooms.has(roomId)) {
+                console.warn('이미 해당 방에 입장 중입니다.');
+                return;
+            }
+             */
+            socket.join(roomId);
+            socket.data.roomId = roomId;
+            const userId = socket.data.userId;
+
+            const charList = await getUserCharacterList(userId);
+            socket.emit('char-list', charList);
+
+            const users = await getRoomUserInfo(roomId);
+            io.to(roomId).emit("room-users", users);
+
+
+        } catch (err) {
+            console.error("join-room 에러:", err);
+            socket.emit('error', { message: "방 참여 중 오류 발생" });
+        }
     });
 
     socket.on("leave-room", async (roomId) => {

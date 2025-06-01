@@ -4,7 +4,7 @@ import { useRoom } from "@/context/RoomContext";
 
 export default function useGameLobbyUsers(roomId) {
     const { socket } = useSocket();
-    const { setPlayers } = useRoom();
+    const { setPlayers, setCharacterList, setMyCharacters } = useRoom();
 
     useEffect(() => {
         if (!socket || !roomId) return;
@@ -16,14 +16,20 @@ export default function useGameLobbyUsers(roomId) {
         const handleRoomUsers = (players) => {
             setPlayers(players);
         };
+        //사용자 보유 캐릭터 목록 수신
+        const handleCharList = (characters) => {
+            setCharacterList(characters);
+        }
 
         socket.on("room-users", handleRoomUsers);
+        socket.on("char-list", handleCharList);
 
         return () => {
             // 방 나가기 시 
             socket.emit("leave-room", roomId);
             socket.off("room-users", handleRoomUsers);
+            socket.off("char-list", handleCharList);
         };
-    }, [socket, roomId, setPlayers]);
+    }, [socket, roomId, setPlayers, setCharacterList, setMyCharacters]);
 
 }
