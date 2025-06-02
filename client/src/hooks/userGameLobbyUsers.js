@@ -4,7 +4,7 @@ import { useRoom } from "@/context/RoomContext";
 
 export default function useGameLobbyUsers(roomId) {
     const { socket } = useSocket();
-    const { setPlayers, setCharacterList, setMyCharacters } = useRoom();
+    const { setPlayers, setCharacterList } = useRoom();
 
     useEffect(() => {
         if (!socket || !roomId) return;
@@ -30,6 +30,6 @@ export default function useGameLobbyUsers(roomId) {
             socket.off("room-users", handleRoomUsers);
             socket.off("char-list", handleCharList);
         };
-    }, [socket, roomId, setPlayers, setCharacterList, setMyCharacters]);
+    }, [socket, roomId, setPlayers, setCharacterList]);
 
 }

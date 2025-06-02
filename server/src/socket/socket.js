@@ -2,8 +2,9 @@ import { Server } from 'socket.io';
 import handleLobby from './handlers/lobby.js';
 import handleChat from './handlers/chat.js';
 import { roomEvents } from "../events.js";
-import { getAllRooms } from "../services/roomModel.js";
+import { getAllRooms, getRoomUserInfo } from "../services/roomModel.js";
 import handleGameLobby from './handlers/gamelobby.js';
+
 
 // 연결된 소켓을 저장할 맵 (선택적, 필요시 사용)
 export const socketToUserMap = new Map(); // 사용자 ID와 소켓 ID 매핑
@@ -29,6 +30,13 @@ export function setupSocket(server) {
         const allRooms = await getAllRooms();
         io.in("lobby").emit("room-list-changed", allRooms);
         console.log("🔌 Emitted room-list-changed", allRooms.length, "rooms");
+    });
+
+    //방에 있는 사용자 변경사항 업데이트 
+    roomEvents.on("room-users-updated", async (roomId) => {
+        const users = await getRoomUserInfo(roomId);
+        io.to(roomId).emit("room-users", users);
+        console.log(`🔁 room-users emitted for room ${roomId}`);
     });
 
     return io;

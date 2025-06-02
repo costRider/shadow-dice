@@ -88,8 +88,8 @@ export async function fetchRoomPlayers(roomId) {
  * @param {boolean} isReady
  * @returns {Promise<Room>}  // 방 정보 갱신된 전체 객체 리턴 가정
  */
-export async function readyRoom(roomId, userId, isReady) {
-  const { ok, data } = await apiClient.put(`rooms/${roomId}/ready`, { userId, isReady });
+export async function readyRoom(roomId, userId, characterIds, isReady) {
+  const { ok, data } = await apiClient.put(`rooms/${roomId}/ready`, { userId, characterIds, isReady });
   if (!ok) throw new Error(data.message || '준비 상태 변경 실패');
   return data;
 }

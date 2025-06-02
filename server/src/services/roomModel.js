@@ -93,7 +93,7 @@ export function getRoomById(roomId) {
   const players = db
     .prepare(
       `
-    SELECT rp.userId, u.nickname, rp.isReady, rp.selectedCharacter
+    SELECT rp.userId, u.nickname, rp.isReady, rp.selectedCharacters
     FROM room_players rp
     JOIN users u ON rp.userId = u.id
     WHERE rp.roomId = ?
@@ -108,7 +108,7 @@ export function getRoomById(roomId) {
       userId: p.userId,
       nickname: p.nickname,
       isReady: !!p.isReady,
-      selectedCharacter: p.selectedCharacter,
+      selectedCharacters: p.selectedCharacters,
     })),
   };
 }
@@ -166,12 +166,52 @@ export function getRoomPlayers(roomId) {
 }
 
 export function getRoomUserInfo(roomId) {
-  return db.prepare(`
-      SELECT u.id, u.nickname, rp.isReady, rp.selectedCharacter
-      FROM room_players rp
-      JOIN users u ON u.id = rp.userId
-      WHERE rp.roomId = ?
-    `).all(roomId);
+  // 1) room_players + users JOIN, 사용자가 선택한 캐릭터 정보까지 가져오기
+  const rows = db.prepare(
+    `
+    SELECT
+      rp.userId                AS id,
+      u.nickname               AS nickname,
+      rp.isReady               AS isReady,
+      rp.selectedCharacters    AS selectedCharacters,
+      rp.team                   AS team
+    FROM room_players rp
+      JOIN users u ON rp.userId = u.id
+    WHERE rp.roomId = ?
+    `
+  ).all(roomId);
+
+  // 2) 각 row.selectedCharacters를 JSON.parse → cost 합산
+  for (const row of rows) {
+    let ids = [];
+    if (typeof row.selectedCharacters === "string") {
+      try {
+        ids = JSON.parse(row.selectedCharacters);
+      } catch {
+        ids = [];
+      }
+    }
+    if (!Array.isArray(ids)) ids = [];
+
+    if (ids.length > 0) {
+      // "?, ?, ?, ..." 형태의 플레이스홀더 생성
+      const placeholders = ids.map(() => "?").join(",");
+      // 해당 ID들에 대한 cost만 조회
+      const charRows = db.prepare(
+        `
+        SELECT id, cost
+        FROM characters
+        WHERE id IN (${placeholders})
+        `
+      ).all(...ids);
+      // charRows 예: [ { id: "CHR015", cost: 164 }, { id: "CHR011", cost: 187 } ]
+      row.totalCost = charRows.reduce((sum, ch) => sum + (ch.cost || 0), 0);
+    } else {
+      row.totalCost = 0;
+    }
+  }
+
+  return rows;
 }
 
 //사용자 보유 캐릭터 목록 전달
@@ -185,19 +225,23 @@ export function getUserCharacterList(userId) {
 }
 
 // 준비 상태 변경
-export function setPlayerReady(roomId, userId, isReady) {
+export function setPlayerReady(roomId, userId, characterIds, isReady) {
+  const jsonCharacterIds = JSON.stringify(characterIds);
+
   db.prepare(
     `
-    UPDATE room_players SET isReady = ?
+    UPDATE room_players
+    SET isReady = ?, selectedCharacters = ?
     WHERE roomId = ? AND userId = ?
-  `,
-  ).run(isReady ? 1 : 0, roomId, userId);
+    `
+  ).run(isReady ? 1 : 0, jsonCharacterIds, roomId, userId);
 }
+
 
 //사용자 ID로 룸 정보 get
 export function getRoomByUserId(userId) {
   db.prepare(`
-    SELECT roomId, userId, isReady, selectedCharacter
+    SELECT roomId, userId, isReady, selectedCharacters
     FROM room_players WHERE userId = ?
     `
   ).all(userId);

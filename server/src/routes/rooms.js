@@ -136,10 +136,22 @@ router.post("/join", (req, res) => {
 */
 
 // 준비 상태 토글
-router.put("/:id/ready", (req, res) => {
-  setPlayerReady(req.params.id, req.body.userId, req.body.isReady);
-  res.json({ success: true });
+router.put("/:id/ready", authenticate, async (req, res) => {
+  const roomId = req.params.id;
+  const userId = req.user.id;     // 세션에서 꺼내 쓰기
+  const { characterIds, isReady } = req.body;
+
+  try {
+    await setPlayerReady(roomId, userId, characterIds, isReady);
+    roomEvents.emit("room-users-updated", roomId);
+    res.json({ success: true });
+  } catch (err) {
+    console.error("ready 상태 설정 실패:", err);
+    res.status(500).json({ message: "서버 오류로 준비 상태 설정 실패" });
+  }
+
 });
+
 
 // 게임 시작 (호스트 전용)
 router.put("/:id/start", (req, res) => {

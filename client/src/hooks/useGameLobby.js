@@ -1,9 +1,11 @@
 import { useState, useCallback } from 'react';
 import { joinRoom, leaveRoom, readyRoom, startRoom } from '@/services/rooms';
 import { updateUserStatus } from '@/services/user';
+import { useRoom } from "@/context/RoomContext";
 
 export default function useGameLobby() {
 
+    const { setMyCharacters, setReady, } = useRoom();
     const [error, setError] = useState(null);
 
     const join = useCallback(async (roomId) => {
@@ -30,10 +32,12 @@ export default function useGameLobby() {
         }
     }, []);
 
-    const ready = useCallback(async (roomId, isReady) => {
+    const ready = useCallback(async ({ roomId, userId, characterIds, isReady }) => {
         setError(null);
         try {
-            const updated = await readyRoom(roomId, isReady);
+            const updated = await readyRoom(roomId, userId, characterIds, isReady);
+            setReady(isReady);
+            setMyCharacters(characterIds);
             return updated;
         } catch (err) {
             setError(err);
