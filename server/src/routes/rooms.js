@@ -4,6 +4,7 @@ import {
   getAllRooms,
   getRoomById,
   updateRoomStatus,
+  updateRoomInfo,
   addPlayerToRoom,
   leaveRoom,
   getRoomUserInfo,
@@ -45,7 +46,7 @@ router.post(
   async (req, res, next) => {
     try {
       const { id: hostId } = req.user;     // 세션에서 꺼내 쓰기
-      const { title, map, maxPlayers, isPrivate, password } = req.body;
+      const { title, map, maxPlayers, isPrivate, password, costLimit, mode } = req.body;
 
       const room = await createRoom({
         title,
@@ -54,6 +55,8 @@ router.post(
         isPrivate,
         password,
         hostId,
+        costLimit,
+        mode
       });
       await updateUserStatus(req.user.id, 'IN_ROOM');
       roomEvents.emit("list-changed");
@@ -116,7 +119,6 @@ router.get('/:roomId/players', authenticate, (req, res, next) => {
   }
 });
 
-
 // 방 상세 조회
 router.get("/:id", (req, res) => {
   const room = getRoomById(req.params.id);
@@ -124,16 +126,6 @@ router.get("/:id", (req, res) => {
   if (!room) return res.status(404).json({ error: "NOT_FOUND" });
   res.json({ room });
 });
-
-// server/routes/rooms.js
-/*
-router.post("/join", (req, res) => {
-  const { roomId, userId } = req.body;
-  addPlayerToRoom(roomId, userId);
-  const room = getRoomById(roomId);
-  res.json({ room });
-});
-*/
 
 // 준비 상태 토글
 router.put("/:id/ready", authenticate, async (req, res) => {
@@ -150,6 +142,24 @@ router.put("/:id/ready", authenticate, async (req, res) => {
     res.status(500).json({ message: "서버 오류로 준비 상태 설정 실패" });
   }
 
+});
+
+//방 정보 업데이트(옵션 변경)
+
+router.put("/:roomId/update", async (req, res) => {
+  try {
+    const { roomId } = req.params;
+    const updatedFields = req.body.updatedFields;
+    // 예: { mode: true, costLimit: 120 }
+
+    // 서비스 레이어에 그대로 전달
+    const updatedRoom = await updateRoomInfo(roomId, updatedFields);
+    roomEvents.emit("room-info-updated", roomId);
+    return res.json(updatedRoom);
+  } catch (err) {
+    console.error("방 정보 변경 실패:", err);
+    return res.status(400).json({ message: err.message });
+  }
 });
 
 

@@ -1,34 +1,32 @@
-// GameLobbyPage.jsx
 import { useLocation, useNavigate } from "react-router-dom";
+import { toast } from "@/context/ToastContext";
 import { useState, useEffect } from "react";
 import useGameLobby from "@/hooks/useGameLobby";
 import { useRoom } from "@/context/RoomContext";
-import userGameLobbyUsers from "@/hooks/userGameLobbyUsers";
+import useRooms from "@/hooks/useRooms";
+import useGameLobbyUsers from "@/hooks/useGameLobbyUsers";
 import FixedChatBox from "@/components/lobby/ChatBox";
-import useAuth from '@/hooks/useAuth';
+import EditRoomModal from "@/components/gamelobby/EditRoomModal";
+import useAuth from "@/hooks/useAuth";
 
 const GameLobbyPage = () => {
+    const [isLeaving, setIsLeaving] = useState(false);
+    const [isReady, setIsReady] = useState(false);
+    const [selectedCharacters, setSelectedCharacters] = useState([]);
+
     const { user } = useAuth();
     const { leave, ready } = useGameLobby();
+    const { updateRoom } = useRooms();               // useRooms 훅에서 가져온 updateRoom
     const location = useLocation();
     const navigate = useNavigate();
-    const {
-        gameroom,
-        players,
-        setRoom,
-        setPlayers,
-        characterList,
-        setMyCharacters,
-        setReady,
-        loadPlayers,
-    } = useRoom();
+    const [showEditModal, setShowEditModal] = useState(false);
+
+    const { gameroom, players, setRoom, characterList, loadPlayers } = useRoom();
 
     const roomId = gameroom?.id;
+    const costLimit = gameroom?.costLimit;
     const userId = user?.id;
-    const room = location.state?.room;
-    const [isLeaving, setIsLeaving] = useState(false);
-    const [isReady, setIsReady] = useState(false); // 준비 여부 상태 추가
-    const [selectedCharacters, setSelectedCharacters] = useState([]);
+    //const room = location.state?.room;
 
     useEffect(() => {
         if (location.state?.room) {
@@ -42,19 +40,54 @@ const GameLobbyPage = () => {
         if (roomId) loadPlayers(roomId);
     }, [roomId]);
 
-    userGameLobbyUsers(roomId);
+    const { handleChangeTeam } = useGameLobbyUsers(roomId, userId);
+
+    // 4) “옵션 변경” 버튼을 누른 뒤, 서버가 room-updated를 emit하면
+    //    이 useEffect에서 “방 옵션이 바뀌었다”고 판단해 로컬 캐릭터/준비 상태를 초기화합니다.
+    /*
+    useEffect(() => {
+        if (!roomId) return;
+        // room-info-updated 이벤트에서 Context가 이미 setRoom(updatedRoom) 됐고
+        // 여기서 gameroom이 바뀌는 순간을 포착하여 로컬 상태를 초기화합니다.
+        setSelectedCharacters([]);
+        setIsReady(false);
+    }, [gameroom?.teamMode, gameroom?.costLimit]);
+*/
+    const isHost = gameroom?.hostId === userId;
+
+    // 4) 옵션 변경 저장 핸들러
+    const handleSaveOptions = async ({ mode: newTeamMode, costLimit: newCost }) => {
+        try {
+            await updateRoom(roomId, { mode: newTeamMode, costLimit: newCost });
+            setShowEditModal(false);
+        } catch (err) {
+            console.error("옵션 변경 실패:", err);
+        }
+    };
 
     const handleToggleCharacter = (id) => {
-        if (isReady) return; // 준비 완료 상태에서는 캐릭터 선택 불가
+        if (isReady) return;
 
-        setSelectedCharacters((prev) => {
-            if (prev.includes(id)) {
-                return prev.filter((cid) => cid !== id);
-            } else {
-                if (prev.length >= 4) return prev;
-                return [...prev, id];
-            }
-        });
+        const targetChar = characterList.find((c) => c.id === id);
+        if (!targetChar) return;
+
+        // 이미 선택된 캐릭터라면 해제만 처리
+        const isSelected = selectedCharacters.includes(id);
+        if (isSelected) {
+            setSelectedCharacters((prev) => prev.filter((cid) => cid !== id));
+            return;
+        }
+
+        // 선택하려는 캐릭터의 개별 Cost 검사
+        if (costLimit !== null && targetChar.cost > costLimit) {
+            toast(`⚠️ 이 캐릭터의 Cost(${targetChar.cost})가 제한(${costLimit})을 초과합니다!`);
+            return;
+        }
+
+        // 4개 초과 선택을 원치 않으면 기존 로직 유지
+        if (selectedCharacters.length >= 4) return;
+
+        setSelectedCharacters((prev) => [...prev, id]);
     };
 
     const totalCost = selectedCharacters.reduce((sum, id) => {
@@ -63,7 +96,7 @@ const GameLobbyPage = () => {
     }, 0);
 
     const handleExitToLobby = async () => {
-        if (!room) return;
+        if (!gameroom) return;
         setIsLeaving(true);
         try {
             await leave(roomId);
@@ -73,10 +106,8 @@ const GameLobbyPage = () => {
         }
     };
 
-    // 준비 상태 토글 함수
     const toggleReady = async () => {
         if (!roomId) return;
-
         const next = !isReady;
         await ready({
             roomId,
@@ -84,74 +115,108 @@ const GameLobbyPage = () => {
             characterIds: selectedCharacters,
             isReady: next,
         });
-        setIsReady(next); // 로컬 상태 변경도 반영 (선택 사항)
+        setIsReady(next);
+    };
+    // 팀전 시작 시 팀 밸런스 체크
+    const checkTeamBalance = () => {
+        if (!gameroom?.teamMode) return true;
+        const red = players.filter((p) => p.team === "red").length;
+        const blue = players.filter((p) => p.team === "blue").length;
+        return red === blue;
     };
 
     const CharacterRow = ({ char, isSelected, onToggle }) => (
         <div
             className={`flex items-center justify-between px-3 py-1 rounded text-xs border 
-        ${isSelected ? 'bg-blue-100 border-blue-300' : 'bg-white hover:bg-gray-50'}`}
+      ${isSelected
+                    ? "bg-[rgba(10,50,150,0.3)] border-blue-400"
+                    : "bg-[rgba(255,255,255,0.1)] hover:bg-[rgba(255,255,255,0.2)]"
+                }`}
         >
-            <div className="flex-1 font-medium">{char.name}</div>
-            <div className="w-16 text-center">Cost: {char.cost}</div>
-            <div className="w-12 text-center">👟: {char.move}</div>
-            <div className="w-12 text-center">⚔️: {char.attack}</div>
-            <div className="w-12 text-center">🛡: {char.def}</div>
-            <div className="w-12 text-center">📖: {char.int}</div>
-            <div className="w-16 text-center text-gray-500">타입:{char.type}</div>
+            <div className="flex-1 font-medium text-white">{char.name}</div>
+            <div className="w-16 text-center text-blue-200">Cost: {char.cost}</div>
+            <div className="w-12 text-center text-blue-200">👟: {char.move}</div>
+            <div className="w-12 text-center text-blue-200">⚔️: {char.attack}</div>
+            <div className="w-12 text-center text-blue-200">🛡: {char.def}</div>
+            <div className="w-12 text-center text-blue-200">📖: {char.int}</div>
+            <div className="w-16 text-center text-gray-300">타입:{char.type}</div>
             <button
                 onClick={() => onToggle(char.id)}
-                className={`px-2 py-1 ml-2 rounded text-white text-xs ${isSelected ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-500 hover:bg-blue-600'
-                    }`}
+                className={`px-2 py-1 ml-2 rounded text-white text-xs ${isSelected
+                    ? "bg-red-500 hover:bg-red-600"
+                    : "bg-blue-500 hover:bg-blue-600"
+                    } shadow`}
             >
-                {isSelected ? '취소' : '선택'}
+                {isSelected ? "취소" : "선택"}
             </button>
         </div>
     );
 
     return (
-        <div className="flex flex-col h-screen w-screen bg-gray-100">
-            {/* 상단 70% */}
+        <div className="flex flex-col h-screen w-screen bg-[rgba(0,0,40,0.8)]">
             <div className="flex" style={{ height: "70%" }}>
-                {/* 좌측 유저 슬롯 */}
-                <div className="w-[45%] flex flex-col border-r bg-white">
-                    <div className="h-[75%] p-4 border-b">
-                        <h2 className="font-semibold mb-3">👥 유저 슬롯</h2>
-                        <div className="flex items-center justify-between font-semibold text-sm px-2 mb-2 text-gray-600">
+                {/* 좌측 유저 슬롯 패널 */}
+                <div className="w-[45%] flex flex-col border-r border-blue-600 bg-[rgba(10,10,40,0.6)]">
+                    <div className="h-[75%] p-4 border-b border-blue-600 overflow-auto">
+                        <h2 className="font-semibold text-yellow-300 mb-3">👥 유저 슬롯</h2>
+                        <div className="flex items-center justify-between font-semibold text-sm px-2 mb-2 text-blue-200">
                             <div className="w-1/3">닉네임</div>
                             <div className="w-1/3 text-center">💰Cost</div>
                             <div className="w-1/3 text-right">팀</div>
                         </div>
                         <div className="flex flex-col gap-2">
                             {players.map((player, i) => (
-                                <div key={player.id} className="flex items-center justify-between border rounded p-2 bg-gray-50 text-sm">
-                                    <div className="w-1/3 font-medium">
+                                <div
+                                    key={player.id}
+                                    className="flex items-center justify-between border border-blue-500 rounded p-2 bg-[rgba(255,255,255,0.1)] text-sm"
+                                >
+                                    <div className="w-1/3 font-medium text-white">
                                         {i + 1}P - {player.nickname}
-                                        {/* player.isReady가 1(true)이면 초록색 체크, 아니면 회색 대기 아이콘 */}
                                         {player.isReady ? (
-                                            <span className="ml-2 text-green-500 text-xs">🔋 준비 완료</span>
+                                            <span className="ml-2 text-green-400 text-xs">
+                                                🔋 준비 완료
+                                            </span>
                                         ) : (
-                                            <span className="ml-2 text-gray-400 text-xs">🪫 대기중..</span>
+                                            <span className="ml-2 text-gray-400 text-xs">
+                                                🪫 대기중..
+                                            </span>
                                         )}
                                     </div>
                                     <div className="w-1/3 text-center">
                                         {player.isReady ? (
-                                            <span className="ml-2 text-green-500 text-xs">{player.totalCost ?? 0}</span>
+                                            <span className="ml-2 text-green-400 text-xs">
+                                                {player.totalCost ?? 0}
+                                            </span>
                                         ) : (
-                                            <span className="ml-2 text-gray-400 text-xs">⏳ 캐릭터 선택 중..</span>
+                                            <span className="ml-2 text-gray-400 text-xs">
+                                                ⏳ 캐릭터 선택 중..
+                                            </span>
                                         )}
                                     </div>
                                     <div className="w-1/3 text-right">
-                                        <select className="border rounded px-2 py-1 text-xs" value={player.team || "solo"}>
-                                            <option value="solo">⚪ 솔로</option>
-                                            <option value="blue">🔵 블루</option>
-                                            <option value="red">🔴 레드</option>
-                                        </select>
+                                        {gameroom?.teamMode ? (
+                                            <select
+                                                className="border border-blue-400 rounded px-2 py-1 text-xs bg-[rgba(255,255,255,0.1)] text-white"
+                                                value={player.team || "blue"}
+                                                disabled={player.id !== userId}
+                                                onChange={(e) =>
+                                                    handleChangeTeam(player.id, e.target.value)
+                                                }
+                                            >
+                                                <option value="blue">🔵 블루</option>
+                                                <option value="red">🔴 레드</option>
+                                            </select>
+                                        ) : (
+                                            <span className="text-gray-400 text-xs">⚪ 솔로</span>
+                                        )}
                                     </div>
                                 </div>
                             ))}
                             {[...Array(8 - players.length)].map((_, i) => (
-                                <div key={`empty-${i}`} className="flex items-center justify-between border rounded p-2 bg-gray-100 text-sm text-gray-400">
+                                <div
+                                    key={`empty-${i}`}
+                                    className="flex items-center justify-between border border-blue-500 rounded p-2 bg-[rgba(255,255,255,0.05)] text-sm text-gray-400"
+                                >
                                     <div className="w-1/3 font-medium">{players.length + i + 1}P - 대기중</div>
                                     <div className="w-1/3 text-center">--</div>
                                     <div className="w-1/3 text-right">--</div>
@@ -159,46 +224,94 @@ const GameLobbyPage = () => {
                             ))}
                         </div>
                     </div>
-                    <div className="h-[20%] p-4 text-sm">
-                        <h3 className="font-semibold mb-2">📋 방 정보</h3>
-                        <p>방 이름: {gameroom?.title}</p>
-                        <p>맵: {gameroom?.selectedMap}</p>
-                        <p>인원: {gameroom?.maxPlayers}명</p>
-                        <p>형태: {gameroom?.isPrivate ? "🔒 비공개" : "🌐 공개"}</p>
+                    <div className="h-[20%] p-4 text-sm text-white">
+                        <div className="flex justify-between">
+                            {/* 좌측: 방 정보 텍스트 */}
+                            <div className="space-y-1">
+                                <h3 className="font-semibold text-yellow-300 mb-2">📋 방 정보</h3>
+                                <p>방 이름: {gameroom?.title}</p>
+                                <p>맵: {gameroom?.map}</p>
+                                <p>인원: {gameroom?.maxPlayers}명</p>
+                                <p>형태: {gameroom?.isPrivate ? "🔒 비공개" : "🌐 공개"}</p>
+                            </div>
+
+                            {/* 우측: 옵션 변경 버튼 + 팀전/솔로 + Cost 제한 */}
+                            <div className="flex flex-col items-end space-y-2">
+                                {/* 옵션 변경 버튼(호스트만) */}
+                                {isHost && (
+                                    <button
+                                        onClick={() => setShowEditModal(true)}
+                                        className="px-4 py-1 bg-gradient-to-b from-blue-500 to-blue-700 text-white rounded hover:scale-105 transition shadow-md text-sm"
+                                    >
+                                        옵션 변경
+                                    </button>
+                                )}
+
+                                {/* 팀 모드 */}
+                                <span className="font-medium">
+                                    {gameroom?.teamMode ? "🔵 팀전" : "⚪ 솔로"}
+                                </span>
+
+                                {/* Cost 제한 */}
+                                <span className="font-medium">
+                                    Cost 제한: {costLimit === null ? "무제한" : `${costLimit} 이하`}
+                                </span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                {/* 우측 캐릭터 선택 */}
+                {/* 우측 캐릭터 선택 패널 */}
                 <div className="w-[55%] flex flex-col">
-                    <div className="h-[55%] p-4 border-b overflow-auto">
-                        <h2 className="font-semibold mb-2">🎯 보유 캐릭터</h2>
+                    <div className="h-[55%] p-4 border-b border-blue-600 overflow-auto bg-[rgba(10,10,40,0.6)]">
+                        <h2 className="font-semibold text-yellow-300 mb-2">🎯 보유 캐릭터</h2>
                         <div className="space-y-1">
-                            {characterList.filter(c => !selectedCharacters.includes(c.id)).map(char => (
-                                <CharacterRow key={char.id} char={char} isSelected={false} onToggle={handleToggleCharacter} />
-                            ))}
+                            {characterList
+                                .filter((c) => !selectedCharacters.includes(c.id))
+                                .map((char) => (
+                                    <CharacterRow
+                                        key={char.id}
+                                        char={char}
+                                        isSelected={false}
+                                        onToggle={handleToggleCharacter}
+                                    />
+                                ))}
                         </div>
                     </div>
-                    <div className="h-[35%] p-4 border-b overflow-auto">
-                        <h3 className="font-semibold mb-2">🎯 선택한 캐릭터 ({selectedCharacters.length} / 4, 총 Cost: {totalCost})</h3>
+                    <div className="h-[35%] p-4 border-b border-blue-600 overflow-auto bg-[rgba(10,10,40,0.6)]">
+                        <h3 className="font-semibold text-yellow-300 mb-2">
+                            🎯 선택한 캐릭터 ({selectedCharacters.length} / 4, 총 Cost:{" "}
+                            {totalCost})
+                        </h3>
                         <div className="space-y-1">
-                            {selectedCharacters.map(id => {
-                                const char = characterList.find(c => c.id === id);
-                                return <CharacterRow key={id} char={char} isSelected={true} onToggle={handleToggleCharacter} />;
+                            {selectedCharacters.map((id) => {
+                                const char = characterList.find((c) => c.id === id);
+                                return (
+                                    <CharacterRow
+                                        key={id}
+                                        char={char}
+                                        isSelected={true}
+                                        onToggle={handleToggleCharacter}
+                                    />
+                                );
                             })}
                         </div>
                     </div>
-                    <div className="h-[10%] flex items-center justify-between px-4 bg-white">
+                    <div className="h-[10%] flex items-center justify-between px-4 bg-[rgba(10,10,40,0.6)]">
                         <button
                             onClick={toggleReady}
                             disabled={selectedCharacters.length === 0}
-                            className={`px-6 py-2 rounded text-white ${isReady ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-green-500 hover:bg-green-600'}`}
+                            className={`px-6 py-2 rounded text-white font-semibold shadow-md transition ${isReady
+                                ? "bg-yellow-500 hover:bg-yellow-600"
+                                : "bg-green-500 hover:bg-green-600"
+                                }`}
                         >
-                            {isReady ? '준비 취소' : '준비 완료'}
+                            {isReady ? "준비 취소" : "준비 완료"}
                         </button>
                         <button
                             onClick={handleExitToLobby}
                             disabled={isLeaving}
-                            className="text-red-500 hover:underline text-sm"
+                            className="text-red-400 hover:text-red-600 underline text-sm"
                         >
                             ❌ 나가기
                         </button>
@@ -206,21 +319,36 @@ const GameLobbyPage = () => {
                 </div>
             </div>
 
-            {/* 하단 채팅 / 접속자 */}
-            <div className="flex h-[35%] border-t">
-                <div className="w-[80%]">
+            {/* 하단: 채팅 / 접속자 lists */}
+            <div className="flex h-[35%] border-t border-blue-600">
+                <div className="w-[80%] bg-[rgba(10,10,40,0.6)]">
                     <FixedChatBox chatType="room" roomId={roomId} className="h-full" />
                 </div>
-                <div className="w-[20%] p-4 border-l text-sm bg-white overflow-y-auto">
-                    <h4 className="font-semibold mb-2">현재 접속자</h4>
+                <div className="w-[20%] p-4 overflow-y-auto bg-[rgba(10,10,40,0.6)]">
+                    <h4 className="font-semibold text-yellow-300 mb-2">현재 접속자</h4>
                     <ul className="space-y-1">
-                        {players.map(player => (
-                            <li key={player.id} className="p-2 border rounded bg-white">{player.nickname}</li>
+                        {players.map((player) => (
+                            <li
+                                key={player.id}
+                                className="p-2 border border-blue-500 rounded bg-[rgba(255,255,255,0.1)] text-white"
+                            >
+                                {player.nickname}
+                            </li>
                         ))}
                     </ul>
                 </div>
             </div>
-        </div>
+            {
+                showEditModal && (
+                    <EditRoomModal
+                        initialMode={gameroom.teamMode}
+                        initialCostLimit={gameroom.costLimit}
+                        onClose={() => setShowEditModal(false)}
+                        onSave={handleSaveOptions}
+                    />
+                )
+            }
+        </div >
     );
 };
 

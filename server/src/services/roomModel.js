@@ -9,14 +9,16 @@ export function createRoom({
   isPrivate,
   password,
   hostId,
+  costLimit,
+  mode
 }) {
   const id = uuid();
   const now = new Date().toISOString();
-
+  const passwordValue = password && password.trim().length > 0 ? password : null;
   db.prepare(
     `
-    INSERT INTO rooms (id, title, map, maxPlayers, isPrivate, password, hostId, status, createdAt)
-    VALUES (?, ?, ?, ?, ?, ?, ?, 'WAITING', ?)
+    INSERT INTO rooms (id, title, map, maxPlayers, isPrivate, password, hostId, teamMode, costLimit, status, createdAt)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?,?,'WAITING', ?)
   `,
   ).run(
     id,
@@ -24,8 +26,10 @@ export function createRoom({
     map,
     maxPlayers,
     isPrivate ? 1 : 0,
-    password || null,
+    passwordValue,
     hostId,
+    mode ? 1 : 0,
+    costLimit,
     now,
   );
 
@@ -126,6 +130,54 @@ export function addPlayerToRoom(roomId, userId) {
     VALUES (?, ?)
   `,
   ).run(roomId, userId);
+}
+
+// 방 정보 업데이트 
+
+export async function updateRoomInfo(roomId, updatedFields) {
+  // updatedFields 예시: { mode: true, costLimit: 120 }
+
+  // 1) 요청된 필드 중 유효한 키만 골라내기 (선택적으로)
+  const allowedKeys = ["mode", "costLimit"];
+  const fieldsToUpdate = {};
+  for (const key of allowedKeys) {
+    if (updatedFields.hasOwnProperty(key)) {
+      fieldsToUpdate[key] = updatedFields[key];
+    }
+  }
+
+  // 2) 변경할 필드가 없다면 바로 기존 정보 반환
+  if (Object.keys(fieldsToUpdate).length === 0) {
+    return getRoomById(roomId);
+  }
+
+  // 3) SQL 쿼리 생성 예시 (better-sqlite3 문법 가정)
+  //   - mode, costLimit 이외의 필드는 무시
+  //   - updatedFields에 따라 바인딩 파라미터를 동적으로 생성
+  const sets = [];
+  const params = [];
+  if (fieldsToUpdate.mode !== undefined) {
+    sets.push("teamMode = ?");
+    params.push(fieldsToUpdate.mode ? 1 : 0);
+  }
+  if (fieldsToUpdate.costLimit !== undefined) {
+    // costLimit이 null이면 NULL로, 숫자면 해당 값으로
+    sets.push("costLimit = ?");
+    params.push(fieldsToUpdate.costLimit);
+  }
+  // 최종: params 순서 [mode?, costLimit?, roomId, roomId]
+  const sql = `
+    UPDATE rooms
+    SET ${sets.join(", ")}
+    WHERE id = ?;
+  `;
+  params.push(roomId);
+
+  // 4) 실제 DB 업데이트
+  db.prepare(sql).run(...params);
+
+  // 5) 갱신된 방 정보(SELECT)를 바로 반환
+  return getRoomById(roomId);
 }
 
 // 유저 방 나가기
@@ -235,6 +287,16 @@ export function setPlayerReady(roomId, userId, characterIds, isReady) {
     WHERE roomId = ? AND userId = ?
     `
   ).run(isReady ? 1 : 0, jsonCharacterIds, roomId, userId);
+}
+
+//팀 변경
+export function setPlayerTeam(roomId, userId, team) {
+  db.prepare(
+    `
+    UPDATE room_players SET team = ? WHERE roomId = ? AND userId = ? 
+
+    `
+  ).run(team, roomId, userId);
 }
 
 

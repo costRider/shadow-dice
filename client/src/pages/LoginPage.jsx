@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import SignupModal from "@/components/SignupModal";
 import useAuth from "@/hooks/useAuth";
-import { useToast } from '@/context/ToastContext';
+import { useToast } from "@/context/ToastContext";
 
 const LoginPage = () => {
     const [userId, setUserId] = useState("");
@@ -24,39 +24,44 @@ const LoginPage = () => {
     };
 
     return (
-        <div className="flex flex-col items-center justify-center h-screen w-screen bg-gray-900 text-white">
-            <h1 className="text-4xl font-bold mb-8">🎲 Dice Shadow</h1>
+        <div className="flex flex-col items-center justify-center h-screen w-screen bg-[url('/images/login-bg.jpg')] bg-cover bg-center">
+            {/* 네이비톤 반투명 오버레이 */}
+            <div className="absolute inset-0 bg-[rgba(0,0,64,0.7)]"></div>
 
-            <input
-                className="w-64 px-4 py-2 mb-2 border rounded text-white"
-                placeholder="아이디"
-                value={userId}
-                onChange={(e) => setUserId(e.target.value)}
-            />
-            <input
-                className="w-64 px-4 py-2 mb-4 border rounded text-white"
-                placeholder="비밀번호"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-            />
+            <div className="relative z-10 flex flex-col items-center p-8 rounded-2xl bg-[rgba(10,10,50,0.85)] shadow-2xl w-100">
+                <h1 className="text-4xl font-bold text-amber-300 mb-8">🎲 Dice Shadow</h1>
 
-            <div className="flex space-x-4">
-                <button
-                    onClick={handleLogin}
-                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-                >
-                    로그인
-                </button>
-                <button
-                    onClick={() => setShowSignup(true)}
-                    className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400 text-black"
-                >
-                    회원가입
-                </button>
+                <input
+                    className="w-full px-4 py-2 mb-2 bg-[rgba(255,255,255,0.1)] border border-blue-400 rounded text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="아이디"
+                    value={userId}
+                    onChange={(e) => setUserId(e.target.value)}
+                />
+                <input
+                    className="w-full px-4 py-2 mb-4 bg-[rgba(255,255,255,0.1)] border border-blue-400 rounded text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="비밀번호"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                />
+
+                <div className="flex w-full space-x-4">
+                    <button
+                        onClick={handleLogin}
+                        className="flex-1 bg-gradient-to-b from-blue-500 to-blue-700 text-white px-4 py-2 rounded hover:scale-105 transition transform shadow-lg"
+                    >
+                        로그인
+                    </button>
+                    <button
+                        onClick={() => setShowSignup(true)}
+                        className="flex-1 bg-gradient-to-b from-gray-300 to-gray-400 text-black px-4 py-2 rounded hover:scale-105 transition transform shadow-lg"
+                    >
+                        회원가입
+                    </button>
+                </div>
+
+                {showSignup && <SignupModal onClose={() => setShowSignup(false)} />}
             </div>
-
-            {showSignup && <SignupModal onClose={() => setShowSignup(false)} />}
         </div>
     );
 };

@@ -94,6 +94,13 @@ export async function readyRoom(roomId, userId, characterIds, isReady) {
   return data;
 }
 
+//방 정보 업데이트
+export async function updateRoomInfo(roomId, updatedFields) {
+  const { ok, data } = await apiClient.put(`rooms/${roomId}/update`, { updatedFields });
+  if (!ok) throw new Error(data.message || '방 정보 변경 실패');
+  return data;
+}
+
 /**
  * 게임 시작 (호스트만 호출)
  * @param {string} roomId

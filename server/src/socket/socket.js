@@ -2,7 +2,7 @@ import { Server } from 'socket.io';
 import handleLobby from './handlers/lobby.js';
 import handleChat from './handlers/chat.js';
 import { roomEvents } from "../events.js";
-import { getAllRooms, getRoomUserInfo } from "../services/roomModel.js";
+import { getAllRooms, getRoomById, getRoomUserInfo } from "../services/roomModel.js";
 import handleGameLobby from './handlers/gamelobby.js';
 
 
@@ -38,6 +38,13 @@ export function setupSocket(server) {
         io.to(roomId).emit("room-users", users);
         console.log(`🔁 room-users emitted for room ${roomId}`);
     });
+
+    roomEvents.on("room-info-updated", async (roomId) => {
+        const room = await getRoomById(roomId);
+        io.to(roomId).emit("room-updated", room);
+        console.log(`🔁 room-info emitted for room ${roomId}`)
+    }
+    )
 
     return io;
 }
