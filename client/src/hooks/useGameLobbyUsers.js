@@ -20,6 +20,11 @@ export default function useGameLobbyUsers(roomId, userId) {
         socket.emit("change-team", { roomId, userId, team });
     };
 
+    const handleGameStart = (roomId) => {
+        if (roomId === null) return;
+        socket.emit("player-ready-status-changed", { roomId });
+    };
+
     useEffect(() => {
         if (!socket || !roomId) return;
 
@@ -59,6 +64,6 @@ export default function useGameLobbyUsers(roomId, userId) {
     }, [socket, roomId]);
 
     return {
-        handleChangeTeam,
+        handleChangeTeam, handleGameStart,
     };
 }

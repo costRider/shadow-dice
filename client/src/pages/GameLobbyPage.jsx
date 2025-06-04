@@ -40,7 +40,7 @@ const GameLobbyPage = () => {
         if (roomId) loadPlayers(roomId);
     }, [roomId]);
 
-    const { handleChangeTeam } = useGameLobbyUsers(roomId, userId);
+    const { handleChangeTeam, handleGameStart } = useGameLobbyUsers(roomId, userId);
 
     // 4) “옵션 변경” 버튼을 누른 뒤, 서버가 room-updated를 emit하면
     //    이 useEffect에서 “방 옵션이 바뀌었다”고 판단해 로컬 캐릭터/준비 상태를 초기화합니다.
@@ -108,6 +108,7 @@ const GameLobbyPage = () => {
 
     const toggleReady = async () => {
         if (!roomId) return;
+
         const next = !isReady;
         await ready({
             roomId,
@@ -116,13 +117,10 @@ const GameLobbyPage = () => {
             isReady: next,
         });
         setIsReady(next);
-    };
-    // 팀전 시작 시 팀 밸런스 체크
-    const checkTeamBalance = () => {
-        if (!gameroom?.teamMode) return true;
-        const red = players.filter((p) => p.team === "red").length;
-        const blue = players.filter((p) => p.team === "blue").length;
-        return red === blue;
+
+        if (next) {
+            handleGameStart(roomId);
+        }
     };
 
     const CharacterRow = ({ char, isSelected, onToggle }) => (
@@ -198,7 +196,7 @@ const GameLobbyPage = () => {
                                             <select
                                                 className="border border-blue-400 rounded px-2 py-1 text-xs bg-[rgba(255,255,255,0.1)] text-white"
                                                 value={player.team || "blue"}
-                                                disabled={player.id !== userId}
+                                                disabled={player.id !== userId || isReady}
                                                 onChange={(e) =>
                                                     handleChangeTeam(player.id, e.target.value)
                                                 }
@@ -241,6 +239,7 @@ const GameLobbyPage = () => {
                                 {isHost && (
                                     <button
                                         onClick={() => setShowEditModal(true)}
+                                        disabled={isReady}
                                         className="px-4 py-1 bg-gradient-to-b from-blue-500 to-blue-700 text-white rounded hover:scale-105 transition shadow-md text-sm"
                                     >
                                         옵션 변경
