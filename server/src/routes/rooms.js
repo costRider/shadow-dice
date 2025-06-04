@@ -98,8 +98,9 @@ router.post("/:roomId/leave", authenticate, async (req, res, next) => {
     const userId = req.user.id;
     const { roomId } = req.params;
     console.log('방 나가기 유저: ', userId, '방 나가기 룸: ', roomId)
-    await leaveRoom(roomId, userId);
+    const newHostId = await leaveRoom(roomId, userId);
     roomEvents.emit("list-changed");
+    if (newHostId != null) { roomEvents.emit("room-info-updated", roomId); };
     res.json({ ok: true });
   } catch (err) {
     next(err);
@@ -155,6 +156,7 @@ router.put("/:roomId/update", async (req, res) => {
     // 서비스 레이어에 그대로 전달
     const updatedRoom = await updateRoomInfo(roomId, updatedFields);
     roomEvents.emit("room-info-updated", roomId);
+    roomEvents.emit("room-users-updated", roomId);
     return res.json(updatedRoom);
   } catch (err) {
     console.error("방 정보 변경 실패:", err);

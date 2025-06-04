@@ -44,7 +44,7 @@ const GameLobbyPage = () => {
 
     // 4) “옵션 변경” 버튼을 누른 뒤, 서버가 room-updated를 emit하면
     //    이 useEffect에서 “방 옵션이 바뀌었다”고 판단해 로컬 캐릭터/준비 상태를 초기화합니다.
-    /*
+
     useEffect(() => {
         if (!roomId) return;
         // room-info-updated 이벤트에서 Context가 이미 setRoom(updatedRoom) 됐고
@@ -52,7 +52,7 @@ const GameLobbyPage = () => {
         setSelectedCharacters([]);
         setIsReady(false);
     }, [gameroom?.teamMode, gameroom?.costLimit]);
-*/
+
     const isHost = gameroom?.hostId === userId;
 
     // 4) 옵션 변경 저장 핸들러
@@ -165,13 +165,13 @@ const GameLobbyPage = () => {
                             <div className="w-1/3 text-right">팀</div>
                         </div>
                         <div className="flex flex-col gap-2">
-                            {players.map((player, i) => (
+                            {players.map((player) => (
                                 <div
                                     key={player.id}
                                     className="flex items-center justify-between border border-blue-500 rounded p-2 bg-[rgba(255,255,255,0.1)] text-sm"
                                 >
                                     <div className="w-1/3 font-medium text-white">
-                                        {i + 1}P - {player.nickname}
+                                        Player - {player.nickname}
                                         {player.isReady ? (
                                             <span className="ml-2 text-green-400 text-xs">
                                                 🔋 준비 완료

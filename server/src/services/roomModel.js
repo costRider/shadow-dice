@@ -133,12 +133,9 @@ export function addPlayerToRoom(roomId, userId) {
 }
 
 // 방 정보 업데이트 
-
 export async function updateRoomInfo(roomId, updatedFields) {
-  // updatedFields 예시: { mode: true, costLimit: 120 }
-
-  // 1) 요청된 필드 중 유효한 키만 골라내기 (선택적으로)
   const allowedKeys = ["mode", "costLimit"];
+  const currentRoom = getRoomById(roomId);
   const fieldsToUpdate = {};
   for (const key of allowedKeys) {
     if (updatedFields.hasOwnProperty(key)) {
@@ -146,14 +143,10 @@ export async function updateRoomInfo(roomId, updatedFields) {
     }
   }
 
-  // 2) 변경할 필드가 없다면 바로 기존 정보 반환
   if (Object.keys(fieldsToUpdate).length === 0) {
     return getRoomById(roomId);
   }
 
-  // 3) SQL 쿼리 생성 예시 (better-sqlite3 문법 가정)
-  //   - mode, costLimit 이외의 필드는 무시
-  //   - updatedFields에 따라 바인딩 파라미터를 동적으로 생성
   const sets = [];
   const params = [];
   if (fieldsToUpdate.mode !== undefined) {
@@ -161,24 +154,42 @@ export async function updateRoomInfo(roomId, updatedFields) {
     params.push(fieldsToUpdate.mode ? 1 : 0);
   }
   if (fieldsToUpdate.costLimit !== undefined) {
-    // costLimit이 null이면 NULL로, 숫자면 해당 값으로
     sets.push("costLimit = ?");
     params.push(fieldsToUpdate.costLimit);
   }
-  // 최종: params 순서 [mode?, costLimit?, roomId, roomId]
+  if (fieldsToUpdate.mode === true && currentRoom.maxPlayers % 2 !== 0) {
+    sets.push("maxPlayers = ?");
+    params.push(currentRoom.maxPlayers + 1);
+  }
+  params.push(roomId);
+
   const sql = `
     UPDATE rooms
     SET ${sets.join(", ")}
     WHERE id = ?;
   `;
-  params.push(roomId);
-
-  // 4) 실제 DB 업데이트
   db.prepare(sql).run(...params);
 
-  // 5) 갱신된 방 정보(SELECT)를 바로 반환
+  // 1. 변경된 teamMode 값을 결정
+  const isTeamMode = fieldsToUpdate.mode;
+
+  // 2. room_players 초기화
+  //   - isReady = 0
+  //   - selectedCharacters = '[]'
+  //   - team = "blue" 또는 NULL
+  const resetSql = `
+    UPDATE room_players
+    SET
+      isReady = 0,
+      selectedCharacters = '[]',
+      team = ${isTeamMode ? `'blue'` : `NULL`}
+    WHERE roomId = ?;
+  `;
+  db.prepare(resetSql).run(roomId);
+
   return getRoomById(roomId);
 }
+
 
 // 유저 방 나가기
 // 방에 유저가 없으면 방 삭제

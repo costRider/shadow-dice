@@ -54,7 +54,10 @@ function handleGameLobby(io, socket) {
                 const roomId = socket.data.roomId;
 
                 console.log('방 나가기 유저:', userId, '방 나가기 룸:', roomId);
-                await leaveRoom(roomId, userId);
+
+                const newHostId = await leaveRoom(roomId, userId);
+                roomEvents.emit("list-changed");
+                if (newHostId != null) { roomEvents.emit("room-info-updated", roomId); };
 
                 const users = await getRoomUserInfo(roomId);
                 io.to(roomId).emit("room-users", users); // 사용자 목록 갱신
