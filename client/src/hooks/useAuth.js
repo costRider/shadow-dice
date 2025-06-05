@@ -11,24 +11,30 @@ export default function useAuth() {
     const navigate = useNavigate();
 
     const login = useCallback(async (userid, password) => {
+        try {
+            const res = await loginUser(userid, password);
+            if (!res.success) {
+                toast(res.message || '❌ 로그인 실패');
+                return res;
+            }
 
-        const res = await loginUser(userid, password);
-        if (!res.success) {
-            toast(data.message || '❌ 로그인 실패');
-            return res;
-        }
-        console.log('로그인 성공:', res);
-        const u = res.user;
-        setUser(u); // 1) 유저 먼저 저장
-        navigate("/lobby");
-        toast("로그인 성공! 환영합니다, " + res.user.nickname + "님!");
-        if (res.grantedDailyGP) {
-            toast("오늘 첫 로그인 보상 100GP를 받았습니다! 🎉'현재 GP: " + u.gp);
-        }
+            console.log('로그인 성공:', res);
+            const u = res.user;
+            setUser(u); // 1) 유저 먼저 저장
+            navigate("/lobby");
+            toast("로그인 성공! 환영합니다, " + res.user.nickname + "님!");
+            if (res.grantedDailyGP) {
+                toast("오늘 첫 로그인 보상 100GP를 받았습니다! 🎉'현재 GP: " + u.gp);
+            }
 
-        console.log('유저 정보 저장됨:', u);
-        return { success: true, user: u };
-    }, [setUser]);
+            console.log('유저 정보 저장됨:', u);
+            return { success: true, user: u };
+        } catch (err) {
+            console.error('로그인 실패:', err);
+            toast(err.message || '❌ 로그인 실패');
+            return { success: false, message: err.message };
+        }
+    }, [setUser, navigate]);
 
 
 
