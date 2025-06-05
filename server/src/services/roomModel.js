@@ -313,7 +313,7 @@ export function setPlayerTeam(roomId, userId, team) {
 
 //사용자 ID로 룸 정보 get
 export function getRoomByUserId(userId) {
-  db.prepare(`
+  return db.prepare(`
     SELECT roomId, userId, isReady, selectedCharacters
     FROM room_players WHERE userId = ?
     `
