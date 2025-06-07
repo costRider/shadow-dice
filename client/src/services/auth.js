@@ -2,12 +2,12 @@
 import apiClient from './apiClient';
 
 // 가입
-export async function signupUser({ userId, password, nickname }) {
+export async function signupUser({ userId, password, nickname, avatarCode, gender }) {
     // apiClient.post 내부에서 실패 시 toast()는 이미 띄워주므로,
     // 여기서는 OK/ERROR 여부를 그대로 돌려줍니다.
     const result = await apiClient.post(
         'auth/signup',
-        { userId, password, nickname }
+        { userId, password, nickname, avatarCode, gender }
     );
     // result: { ok: boolean, data: any }
     return result;

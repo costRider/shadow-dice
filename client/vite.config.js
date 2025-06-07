@@ -21,4 +21,19 @@ export default defineConfig({
       '@': path.resolve(__dirname, 'src'),
     },
   },
+
+  server: {
+    proxy: {
+      // 모든 /api 요청을 백엔드로 프록시
+      '/api': {
+        target: 'http://localhost:4000', // 백엔드 주소
+        changeOrigin: true,
+        // rewrite는 보통 필요 없음
+      },
+      '/resources': {
+        target: 'http://localhost:4000', // 리소스 이미지 경로도 백엔드로!
+        changeOrigin: true,
+      }
+    }
+  }
 });

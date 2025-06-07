@@ -7,12 +7,23 @@ const router = express.Router();
 // 회원가입
 router.post('/signup', (req, res) => {
   const user = req.body;
-  const { userId, password, nickname } = user;
+  const { userId, password, nickname, avatarCode, gender } = user;
   if (!userId || !password || !nickname) {
     return res.status(400).json({ error: '모든 칸을 입력해야 합니다.' });
   }
+  if (!avatarCode || gender) {
+    return res.status(400).json({ error: '아바타를 선택 해 주세요.' });
+  }
   // createUser에서 반환된 error 코드를 그대로 전달
-  const result = createUser({ id: userId, password, nickname });
+  const result = createUser({
+    userId,
+    password,
+    nickname,
+    avatarCode,
+    gender,
+    avatarExpression: "default"
+  });
+
   if (!result.success) {
     // result.error: 'DUPLICATE_ID' | 'DUPLICATE_NICKNAME' | 'DUPLICATE' | 기타 에러 메시지
     return res.status(409).json({ success: false, error: result.error });

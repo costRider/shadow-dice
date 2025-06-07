@@ -1,4 +1,5 @@
 import db from "../config/db.js";
+import { getDefaultAvatarItems } from './avatar-utils';
 
 export function createUser({ id, password, nickname }) {
   const now = new Date().toISOString();
