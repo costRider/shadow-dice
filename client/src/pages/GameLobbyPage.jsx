@@ -7,12 +7,15 @@ import useRooms from "@/hooks/useRooms";
 import useGameLobbyUsers from "@/hooks/useGameLobbyUsers";
 import FixedChatBox from "@/components/lobby/ChatBox";
 import EditRoomModal from "@/components/gamelobby/EditRoomModal";
+import UserProfileModal from "@/components/lobby/UserProfileModal";
 import useAuth from "@/hooks/useAuth";
 
 const GameLobbyPage = () => {
     const [isLeaving, setIsLeaving] = useState(false);
     const [isReady, setIsReady] = useState(false);
     const [selectedCharacters, setSelectedCharacters] = useState([]);
+
+    const [profileId, setProfileId] = useState(null);
 
     const { user } = useAuth();
     const { leave, ready } = useGameLobby();
@@ -323,31 +326,51 @@ const GameLobbyPage = () => {
                 <div className="w-[80%] bg-[rgba(10,10,40,0.6)]">
                     <FixedChatBox chatType="room" roomId={roomId} className="h-full" />
                 </div>
+
+                {/* ⚡ 여기를 수정했습니다 */}
                 <div className="w-[20%] p-4 overflow-y-auto bg-[rgba(10,10,40,0.6)]">
                     <h4 className="font-semibold text-yellow-300 mb-2">현재 접속자</h4>
                     <ul className="space-y-1">
                         {players.map((player) => (
                             <li
                                 key={player.id}
-                                className="p-2 border border-blue-500 rounded bg-[rgba(255,255,255,0.1)] text-white"
+                                tabIndex={0}
+                                className="flex items-center space-x-2 cursor-pointer hover:bg-[rgba(50,50,90,0.7)] p-2 rounded transition"
+                                onClick={() => setProfileId(player.id)}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter" || e.key === " ") {
+                                        setProfileId(player.id);
+                                    }
+                                }}
                             >
-                                {player.nickname}
+                                <span className="text-white">{player.nickname}</span>
                             </li>
                         ))}
                     </ul>
+                    {!players.length && (
+                        <p className="text-gray-400">현재 접속자가 없습니다.</p>
+                    )}
                 </div>
             </div>
-            {
-                showEditModal && (
-                    <EditRoomModal
-                        initialMode={gameroom.teamMode}
-                        initialCostLimit={gameroom.costLimit}
-                        onClose={() => setShowEditModal(false)}
-                        onSave={handleSaveOptions}
-                    />
-                )
-            }
-        </div >
+
+            {/* 옵션 변경 모달 */}
+            {showEditModal && (
+                <EditRoomModal
+                    initialMode={gameroom.teamMode}
+                    initialCostLimit={gameroom.costLimit}
+                    onClose={() => setShowEditModal(false)}
+                    onSave={handleSaveOptions}
+                />
+            )}
+
+            {/* 🎉 프로필 모달 */}
+            {profileId && (
+                <UserProfileModal
+                    userId={profileId}
+                    onClose={() => setProfileId(null)}
+                />
+            )}
+        </div>
     );
 };
 

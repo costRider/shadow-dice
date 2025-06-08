@@ -7,9 +7,12 @@ import roomsRouter from "./routes/rooms.js";
 import usersRouter from "./routes/users.js";
 import avatarRouter from "./routes/avatars.js";
 import partsRouter from "./routes/parts.js";
+import characterRouter from "./routes/characters.js";
 import { setupSocket } from './socket/socket.js';
 import path from "path";
 import { fileURLToPath } from "url";
+
+import characterResourcesRouter from './routes/characterResources.js';
 
 dotenv.config();
 
@@ -29,10 +32,12 @@ app.use(session({
 }));
 
 // 2. REST API 라우트
+app.use(characterResourcesRouter);
 app.use("/api/parts", partsRouter);
 app.use("/api/auth", authRoutes);
 app.use("/api/rooms", roomsRouter);
 app.use("/api/users", usersRouter);
+app.use("/api/characters", characterRouter);
 app.use("/api/avatars", avatarRouter);
 app.use(
     "/resources",
