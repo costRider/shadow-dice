@@ -5,6 +5,9 @@ const AvatarContext = createContext();
 
 export function AvatarProvider({ children }) {
   const [partDepth, setPartDepth] = useState({});
+  const [avatarsByGender, setAvatarsByGender] = useState({ F: [], M: [] });
+
+  // (1) 표정 리스트/갯수
   const expList = [
     { key: "default", label: "기본" },
     { key: "haha", label: "하하" },
@@ -15,41 +18,61 @@ export function AvatarProvider({ children }) {
   ];
   const expCounts = { default: 1, haha: 5, angry: 6, cry: 6, happy: 6, shock: 6 };
 
-  const chatToExpMap = [
-    { exp: "haha", keywords: ["ㅋㅋ", "ㅎㅎ", "하하", "ㅋㅋㅋㅋ", "ㅋㅋㅋ"] },
-    { exp: "cry", keywords: ["ㅠㅠ", "ㅜㅜ", "으앙", "안돼", '안되'] },
-    { exp: "angry", keywords: ["화남", "짜증", "우씨", "아씨", "씨발", "ㅆㅂ", "ㅅㅂ"] },
-    { exp: "happy", keywords: ["좋아", "굿", "멋짐", "최고", "대박"] },
-    { exp: "shock", keywords: ["헉", "헐", "깜짝"] },
-  ];
-  const getExpressionByChat = (msg) => {
-    for (const map of chatToExpMap)
-      if (map.keywords.some((kw) => msg.includes(kw)))
-        return map.exp;
-    return "default";
-  };
-
+  // (2) 부위별 depth 로드
   useEffect(() => {
     fetch("/api/parts")
-      .then(res => res.json())
+      .then(r => r.json())
       .then(data => {
         const map = {};
-        data.forEach(part => { map[part.part_code] = part.depth; });
+        data.forEach(p => map[p.part_code] = p.depth);
         setPartDepth(map);
-      });
+      })
+      .catch(() => setPartDepth({}));
   }, []);
+
+  // (3) 아바타 메타 + 기본 아이템 로드
+  const loadAvatars = (gender) => {
+    if (avatarsByGender[gender]?.length) return; // 이미 불러왔으면 skip
+    fetch(`/api/avatars?gender=${gender}`)
+      .then(r => r.json())
+      .then(data => {
+        // API 리턴: { code, name, gender, description, image_path: bodyPath, defaultItems: [...] }
+        setAvatarsByGender(prev => ({ ...prev, [gender]: data || [] }));
+      });
+  };
+
+  // (4) body 레이어 객체 생성
+  const getBodyLayer = (avatar) => ({
+    part_code: "BODY",
+    id: `body_${avatar.code}`,
+    image_path: avatar.image_path,    // avatars.image_path 에서 내려받은 마네킹 경로
+  });
+
+  // (5) 표정 레이어 객체 생성 헬퍼
+  const getExpressionLayer = (avatarCode, expKey, expNum, gender) => {
+    const suffix = expKey === "default" ? "" : expNum;
+    return {
+      part_code: "EXP",
+      id: `exp_${avatarCode}_${expKey}${suffix}_${gender}`,
+      image_path: `items/expressions/${avatarCode}_${expKey}${suffix}_${gender}.gif`,
+    };
+  };
 
   return (
     <AvatarContext.Provider value={{
       partDepth,
       expList,
       expCounts,
-      getExpressionByChat
+      avatarsByGender,
+      loadAvatars,
+      getBodyLayer,
+      getExpressionLayer,
     }}>
       {children}
     </AvatarContext.Provider>
   );
 }
+
 export function useAvatar() {
   return useContext(AvatarContext);
 }

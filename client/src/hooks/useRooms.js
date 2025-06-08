@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getRooms, createRoom, updateRoomInfo } from '@/services/rooms';
+import { getRooms, createRoom as createRoomService, updateRoomInfo } from '@/services/rooms';
 import { useSocket } from './useSocket';
 import { useRoom } from "@/context/RoomContext";
 
@@ -22,25 +22,37 @@ export default function useRooms() {
             setLoading(false);
         }
     }, []);
+    /*
+        useEffect(() => {
+            // 1) 최초 방 목록 로드
+            fetchAll();
+    
+            // 2) 소켓으로부터 방 목록 변경 이벤트 받기
+            socket.on("room-list-changed", newList => {
+                setRooms(newList);
+            });
+    
+            return () => {
+                socket.off("room-list-changed");
+            };
+        }, [fetchAll, socket]);
+    */
+    useEffect(() => {
+        fetchAll();
+    }, [fetchAll]);
 
     useEffect(() => {
-        // 1) 최초 방 목록 로드
-        fetchAll();
-
-        // 2) 소켓으로부터 방 목록 변경 이벤트 받기
-        socket.on("room-list-changed", newList => {
-            setRooms(newList);
-        });
-
+        const handler = (newList) => setRooms(newList);
+        socket.on("room-list-changed", handler);
         return () => {
-            socket.off("room-list-changed");
+            socket.off("room-list-changed", handler);
         };
-    }, [fetchAll, socket]);
+    }, [socket]);
 
-    const create = useCallback(async (roomData) => {
+    const createRoom = useCallback(async (roomData) => {
         setError(null);
         try {
-            const newRoom = await createRoom(roomData);
+            const newRoom = await createRoomService(roomData);
             return newRoom;
         } catch (err) {
             setError(err);
@@ -77,7 +89,7 @@ export default function useRooms() {
         loading,
         error,
         fetchAll,
-        create,
+        createRoom,
         updateRoom
     };
 }

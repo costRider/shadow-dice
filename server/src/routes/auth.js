@@ -1,5 +1,5 @@
 import express from 'express';
-import { createUser, getUserById } from '../services/userModel.js';
+import { createUser, getUserBasic, getUserProfile } from '../services/userModel.js';
 import { grantDailyGP } from '../services/userService.js';
 
 const router = express.Router();
@@ -11,12 +11,12 @@ router.post('/signup', (req, res) => {
   if (!userId || !password || !nickname) {
     return res.status(400).json({ error: '모든 칸을 입력해야 합니다.' });
   }
-  if (!avatarCode || gender) {
+  if (!avatarCode || !gender) {
     return res.status(400).json({ error: '아바타를 선택 해 주세요.' });
   }
   // createUser에서 반환된 error 코드를 그대로 전달
   const result = createUser({
-    userId,
+    id: userId,
     password,
     nickname,
     avatarCode,
@@ -35,33 +35,36 @@ router.post('/signup', (req, res) => {
 // 로그인
 router.post('/login', (req, res) => {
   const { userId, password } = req.body;
-  const user = getUserById(userId);
+  const userBasic = getUserBasic(userId);
   console.log('로그인 시도:', userId);
   // 1) 유저가 없거나 비밀번호가 틀리면
-  if (!user || user.password !== password) {
+  if (!userBasic || userBasic.password !== password) {
     return res
       .status(401)
       .json({ success: false, message: 'ID 또는 비밀번호 오류' });
   }
 
   // 현재 로그인을 시도한 id의 status 가 OFFLINE이 아니면
-  if (user.status !== 'OFFLINE') {
+  if (userBasic.status !== 'OFFLINE') {
     return res
       .status(403)
       .json({ success: false, message: '이미 로그인되어 있습니다.' });
   }
 
-  // 3) 정상 로그인 처리
+  const granted = grantDailyGP(userBasic.id);
+
+  // 3) 프로필 전체 조립
+  const user = getUserProfile(userId);
+  if (!user) {
+    return res.status(500).json({ success: false, message: "유저 프로필 로드 실패" });
+  }
+
+  //로그인 보너스 
+  if (granted) { user.gp += 100; }
+
   const { password: pw, ...safeUser } = user; // 비밀번호 걸러내기
   req.session.user = safeUser;
   console.log('세션에 저장된 사용자 정보:', safeUser);
-
-  // 2) 오늘분 GP 보상
-  const granted = grantDailyGP(safeUser.id);
-  if (granted) {
-    // 클라이언트에 반영할 safeUser.gp 업데이트
-    safeUser.gp += 100;
-  }
 
   // 4) success 플래그와 함께 유저 정보 리턴
   res.json({ success: true, user: safeUser, grantedDailyGP: granted });

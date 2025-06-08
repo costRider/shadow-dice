@@ -5,7 +5,7 @@ import { useRoom } from "@/context/RoomContext";
 
 export default function useGameLobby() {
 
-    const { setMyCharacters, setReady, } = useRoom();
+    const { setMyCharacters, setReady } = useRoom();
     const [error, setError] = useState(null);
 
     const join = useCallback(async (roomId) => {

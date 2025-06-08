@@ -8,24 +8,21 @@ import useAuth from "@/hooks/useAuth";
 import useLobbyUsers from "@/hooks/useLobbyUsers";
 import FixedChatBox from "@/components/lobby/ChatBox";
 import { UserContext } from "@/context/UserContext";
+import UserProfileModal from "@/components/lobby/UserProfileModal";
 import { toast } from "@/context/ToastContext";
 
 const LobbyPage = () => {
+    const [profileId, setProfileId] = useState(null);
     const navigate = useNavigate();
     const [selectedRoom, setSelectedRoom] = useState(null);
     const [showPopup, setShowPopup] = useState(false);
     const [showPasswordPopup, setShowPasswordPopup] = useState(false);
     const [roomToEnter, setRoomToEnter] = useState(null);
     const { logout } = useAuth();
-    const { rooms, fetchAll } = useRooms();
+    const { rooms } = useRooms();
     const { join } = useGameLobby();
     const { loading: lobbyLoading } = useLobbyUsers();
     const { lobbyUsers } = useContext(UserContext);
-
-    // 로비 진입 시 방 목록 불러오기
-    useEffect(() => {
-        fetchAll();
-    }, []);
 
     useEffect(() => {
         if (selectedRoom && !rooms.find((r) => r.id === selectedRoom.id)) {
@@ -167,13 +164,15 @@ const LobbyPage = () => {
                         {lobbyUsers.map((u) => (
                             <li
                                 key={u.id}
-                                className="flex items-center space-x-2 cursor-pointer hover:bg-[rgba(50,50,90,0.7)] p-2 rounded transition"
-                                onClick={() => {
-                                    toast(
-                                        `정보 — 닉네임: ${u.nickname} / GP: ${u.gp} / 가입일: ${new Date(
-                                            u.createdAt
-                                        ).toLocaleDateString()}`
-                                    );
+                                role="button"
+                                aria-label={`${u.nickname} 프로필 보기`}
+                                className="flex items-center space-x-2 cursor-pointer"
+                                tabIndex={0}
+                                onClick={() => setProfileId(u.id)}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter" || e.key === " ") {
+                                        setProfileId(u.id);
+                                    }
                                 }}
                             >
                                 {u.avatar && (
@@ -191,6 +190,14 @@ const LobbyPage = () => {
                     )}
                 </div>
             </div>
+
+            {/* 프로필 모달 */}
+            {profileId && (
+                <UserProfileModal
+                    userId={profileId}
+                    onClose={() => setProfileId(null)}
+                />
+            )}
 
             {/* 방 생성 팝업 */}
             {showPopup && (

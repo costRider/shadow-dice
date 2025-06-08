@@ -1,7 +1,7 @@
 // users.router.js
 import express from 'express';
 import authenticate from '../middleware/authenticate.js';
-import { updateUserStatus } from '../services/userModel.js';
+import { updateUserStatus, getUserProfile } from '../services/userModel.js';
 
 
 const router = express.Router();
@@ -20,5 +20,18 @@ router.put(
         }
     }
 );
+
+router.get('/:id', authenticate, (req, res, next) => {
+    const userId = req.params.id;
+    try {
+        const profile = getUserProfile(userId);
+        if (!profile) {
+            return res.status(404).json({ error: '사용자를 찾을 수 없습니다.' });
+        }
+        res.json(profile);
+    } catch (err) {
+        next(err);
+    }
+});
 
 export default router;

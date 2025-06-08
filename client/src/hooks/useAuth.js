@@ -40,7 +40,6 @@ export default function useAuth() {
 
     // 회원 가입 
     const signup = useCallback(async ({ userId, password, nickname, avatarCode, gender }) => {
-
         const { ok, data } = await signupUser({ userId, password, nickname, avatarCode, gender });
         // HTTP 레벨 실패 (ok === false)는 네트워크/서버 오류
         /*

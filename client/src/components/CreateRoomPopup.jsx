@@ -9,7 +9,7 @@ const COST_OPTIONS = [null, 100, 120, 140, 160, 180];
 
 const CreateRoomPopup = ({ onClose, onCreate }) => {
   const { user } = useContext(UserContext);
-  const { create } = useRooms();
+  const { createRoom } = useRooms();
 
   const [roomName, setRoomName] = useState("");
   const [maxPlayers, setMaxPlayers] = useState(4);
@@ -59,7 +59,7 @@ const CreateRoomPopup = ({ onClose, onCreate }) => {
     };
 
     try {
-      const created = await create(newRoom, user);
+      const created = await createRoom(newRoom, user);
       onCreate(created);
       onClose();
     } catch (err) {
