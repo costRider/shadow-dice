@@ -49,11 +49,11 @@ const LoginPage = () => {
             <div className="relative z-10 flex flex-col items-center p-8 rounded-2xl bg-[rgba(10,10,50,0.85)] shadow-2xl w-100">
                 <h1 className="text-4xl font-bold text-amber-300 mb-8">🎲 Dice Shadow</h1>
                 <SpriteAnimator
-                    jsonUrl="/resources/characters/CHR001/CHR001_sprite.json"
-                    imageUrl="/resources/characters/CHR001/CHR001_sprite.png"
+                    jsonUrl="/resources/characters/CHR025/CHR025_sprite.json"
+                    imageUrl="/resources/characters/CHR025/CHR025_sprite.png"
                     fps={6}
                     loop={true}
-                    sliceBaseName="top_walk"
+                    sliceBaseName="attack"
                 />
                 <input
                     className="w-full px-4 py-2 mb-2 bg-[rgba(255,255,255,0.1)] border border-blue-400 rounded text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500"

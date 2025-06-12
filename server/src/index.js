@@ -8,6 +8,7 @@ import usersRouter from "./routes/users.js";
 import avatarRouter from "./routes/avatars.js";
 import partsRouter from "./routes/parts.js";
 import characterRouter from "./routes/characters.js";
+import shopRouter from "./routes/shop.js";
 import { setupSocket } from './socket/socket.js';
 import path from "path";
 import { fileURLToPath } from "url";
@@ -39,6 +40,7 @@ app.use("/api/rooms", roomsRouter);
 app.use("/api/users", usersRouter);
 app.use("/api/characters", characterRouter);
 app.use("/api/avatars", avatarRouter);
+app.use("/api/shop/", shopRouter);
 app.use(
     "/resources",
     express.static(path.join(__dirname, "../resources"))
