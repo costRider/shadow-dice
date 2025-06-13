@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import CreateRoomPopup from "@/components/CreateRoomPopup";
 import PasswordPopup from "@/components/auth/PasswordPopup";
@@ -7,7 +7,7 @@ import useGameLobby from "@/hooks/useGameLobby";
 import useAuth from "@/hooks/useAuth";
 import useLobbyUsers from "@/hooks/useLobbyUsers";
 import FixedChatBox from "@/components/lobby/ChatBox";
-import { UserContext } from "@/context/UserContext";
+import ShopModal from '@/components/lobby/ShopModal';
 import UserProfileModal from "@/components/lobby/UserProfileModal";
 import { toast } from "@/context/ToastContext";
 
@@ -16,13 +16,15 @@ const LobbyPage = () => {
     const navigate = useNavigate();
     const [selectedRoom, setSelectedRoom] = useState(null);
     const [showPopup, setShowPopup] = useState(false);
+    const [showShop, setShowShop] = useState(false);
     const [showPasswordPopup, setShowPasswordPopup] = useState(false);
     const [roomToEnter, setRoomToEnter] = useState(null);
-    const { logout } = useAuth();
+    const { logout, user } = useAuth();
     const { rooms } = useRooms();
     const { join } = useGameLobby();
-    const { loading: lobbyLoading } = useLobbyUsers();
-    const { lobbyUsers } = useContext(UserContext);
+    /*const { loading: lobbyLoading } = useLobbyUsers();
+    const { lobbyUsers } = useContext(UserContext);*/
+    const { loading: lobbyLoading, lobbyUsers } = useLobbyUsers();
 
     useEffect(() => {
         if (selectedRoom && !rooms.find((r) => r.id === selectedRoom.id)) {
@@ -39,6 +41,16 @@ const LobbyPage = () => {
     const handleExit = async () => {
         await logout();
         navigate("/");
+    };
+
+
+    const handleOpenShop = () => {
+
+        if (!user) {
+            toast("로그인이 필요합니다.");
+            return;
+        }
+        setShowShop(true);
     };
 
     const handleRoomEnter = (room) => {
@@ -143,6 +155,12 @@ const LobbyPage = () => {
                     >
                         방 입장
                     </button>
+                    <button
+                        className="h-12 w-12 bg-yellow-400 text-white rounded hover:bg-yellow-500"
+                        onClick={handleOpenShop}
+                    >
+                        상점🛒
+                    </button>
                 </div>
 
                 <button
@@ -198,7 +216,9 @@ const LobbyPage = () => {
                     onClose={() => setProfileId(null)}
                 />
             )}
-
+            {showShop && (
+                <ShopModal onClose={() => setShowShop(false)} />
+            )}
             {/* 방 생성 팝업 */}
             {showPopup && (
                 <CreateRoomPopup onClose={() => setShowPopup(false)} onCreate={handleCreated} />

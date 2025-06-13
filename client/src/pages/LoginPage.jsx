@@ -12,23 +12,6 @@ const LoginPage = () => {
 
     const { login } = useAuth();
 
-    useEffect(() => {
-        // CHR001 리소스 로드
-        fetch('/api/character-resources?code=CHR001')
-            .then(async res => {
-                if (!res.ok) throw new Error(await res.text());
-                return res.json();
-            })
-            .then(data => {
-                console.log('▶ character-resources:', data);
-                setResources(data);
-            })
-            .catch(err => {
-                console.error(err);
-                setError(err.message);
-            });
-    }, []);
-
     const handleLogin = async () => {
         if (!userId || !password) {
             toast("ID와 비밀번호를 입력해주세요.");

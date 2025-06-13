@@ -4,7 +4,7 @@ import { UserContext } from '@/context/UserContext';
 import { useSocket } from './useSocket';
 
 export default function useLobbyUsers() {
-    const { user, setLobbyUsers } = useContext(UserContext);
+    const { user, lobbyUsers, setLobbyUsers } = useContext(UserContext);
     const [loading, setLoading] = useState(true);
     const { socket, isConnected } = useSocket();
 
@@ -34,5 +34,5 @@ export default function useLobbyUsers() {
         };
     }, [user, isConnected, socket, setLobbyUsers]);
 
-    return { loading };
+    return { loading, lobbyUsers };
 }

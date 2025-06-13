@@ -18,11 +18,11 @@ import GamePage from '@/pages/GamePage';
 export default function App() {
 
   return (
-    <AvatarProvider>
+    <BrowserRouter>
       <UserProvider>
-        <SocketController>
+        <AvatarProvider>
           <ToastProvider>
-            <BrowserRouter>
+            <SocketController>
               <RoomProvider>
                 <Routes>
                   <Route path="/" element={<LoginPage />} />
@@ -32,11 +32,11 @@ export default function App() {
                   {/* 추가적인 라우트가 필요하면 여기에 작성 */}
                 </Routes>
               </RoomProvider>
-            </BrowserRouter>
+            </SocketController>
           </ToastProvider>
-        </SocketController>
+        </AvatarProvider>
       </UserProvider>
-    </AvatarProvider>
+    </BrowserRouter>
   );
 }
 

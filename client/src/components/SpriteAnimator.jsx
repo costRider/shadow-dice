@@ -1,16 +1,9 @@
 import React, { useRef, useEffect, useState } from 'react';
 
-/**
- * SpriteAnimator
- * - Loads Aseprite JSON + sprite sheet image
- * - Parses meta.slices into frames [{x,y,w,h,name}] sorted by numeric suffix
- * - Plays animation at `fps`, loops if `loop`=true
- * - Optionally filters by sliceBaseName prefix
- */
 export default function SpriteAnimator({
     jsonUrl,
     imageUrl,
-    fps = 12,
+    fps = 8,
     loop = true,
     sliceBaseName = null,
 }) {
@@ -18,79 +11,79 @@ export default function SpriteAnimator({
     const [sheet, setSheet] = useState({ image: null, frames: [] });
     const frameIndex = useRef(0);
 
-    // Load JSON metadata and image, then set sheet state
+    // 메타시트 · 이미지 로드
     useEffect(() => {
         let cancelled = false;
+        frameIndex.current = 0;  // ← jsonUrl/sliceBaseName 변경 시 인덱스 초기화
+
         (async () => {
             try {
                 const res = await fetch(jsonUrl);
-                if (!res.ok) throw new Error(`Failed to load JSON: ${res.status}`);
+                if (!res.ok) throw new Error(`JSON 로드 실패: ${res.status}`);
                 const data = await res.json();
-                // Extract slices
-                const slices = data.meta?.slices || [];
-                let frames = slices.map(s => {
+
+                // slices → frames
+                let frames = (data.meta?.slices || []).map(s => {
                     const { x, y, w, h } = s.keys[0].bounds;
                     return { name: s.name, x, y, w, h };
                 });
-                // Optionally filter by base name
                 if (sliceBaseName) {
-                    frames = frames.filter(f => f.name.startsWith(`${sliceBaseName}`));
+                    frames = frames.filter(f => f.name.startsWith(sliceBaseName));
                 }
-                // Sort by numeric suffix
                 frames.sort((a, b) => {
-                    const numA = parseInt((a.name.match(/\d+$/) || ['0'])[0], 10);
-                    const numB = parseInt((b.name.match(/\d+$/) || ['0'])[0], 10);
-                    return numA - numB;
+                    const na = parseInt(a.name.match(/\d+$/)?.[0] || '0', 10);
+                    const nb = parseInt(b.name.match(/\d+$/)?.[0] || '0', 10);
+                    return na - nb;
                 });
-                // Load image
+
                 const img = new Image();
                 img.src = imageUrl;
-                await new Promise((resolve, reject) => {
-                    img.onload = resolve;
-                    img.onerror = reject;
-                });
-                if (!cancelled) {
-                    setSheet({ image: img, frames });
-                }
+                await new Promise((r, e) => { img.onload = r; img.onerror = e; });
+
+                if (!cancelled) setSheet({ image: img, frames });
             } catch (err) {
-                console.error('[SpriteAnimator] load error:', err);
+                console.error('[SpriteAnimator] load 에러:', err);
             }
         })();
+
         return () => { cancelled = true; };
     }, [jsonUrl, imageUrl, sliceBaseName]);
 
-    // Animation loop with requestAnimationFrame for smooth timing
+    // 애니메이션 루프
     useEffect(() => {
         const { image, frames } = sheet;
-        if (!image || frames.length === 0) return;
+        if (!canvasRef.current || !image || frames.length === 0) return;
 
         const ctx = canvasRef.current.getContext('2d');
         let lastTime = performance.now();
         const frameDuration = 1000 / fps;
+        let cancelled = false;
 
         function draw(now) {
+            if (cancelled) return;
             const delta = now - lastTime;
             if (delta >= frameDuration) {
                 lastTime = now - (delta % frameDuration);
                 const f = frames[frameIndex.current];
-                const { x, y, w, h } = f;
-                canvasRef.current.width = w;
-                canvasRef.current.height = h;
-                ctx.clearRect(0, 0, w, h);
-                ctx.drawImage(image, x, y, w, h, 0, 0, w, h);
-                // Advance frame
-                frameIndex.current = frameIndex.current + 1 < frames.length
-                    ? frameIndex.current + 1
-                    : (loop ? 0 : frameIndex.current);
+                canvasRef.current.width = f.w;
+                canvasRef.current.height = f.h;
+                ctx.clearRect(0, 0, f.w, f.h);
+                ctx.drawImage(image, f.x, f.y, f.w, f.h, 0, 0, f.w, f.h);
+
+                frameIndex.current =
+                    frameIndex.current + 1 < frames.length
+                        ? frameIndex.current + 1
+                        : (loop ? 0 : frameIndex.current);
             }
             requestAnimationFrame(draw);
         }
 
         const rafId = requestAnimationFrame(draw);
-        return () => cancelAnimationFrame(rafId);
+        return () => {
+            cancelled = true;
+            cancelAnimationFrame(rafId);
+        };
     }, [sheet, fps, loop]);
 
-    return (
-        <canvas ref={canvasRef} style={{ imageRendering: 'pixelated' }} />
-    );
+    return <canvas ref={canvasRef} style={{ imageRendering: 'pixelated' }} />;
 }

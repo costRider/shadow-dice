@@ -64,6 +64,7 @@ router.post('/login', (req, res) => {
 
   const { password: pw, ...safeUser } = user; // 비밀번호 걸러내기
   req.session.user = safeUser;
+  req.session.userId = safeUser.id;
   console.log('세션에 저장된 사용자 정보:', safeUser);
 
   // 4) success 플래그와 함께 유저 정보 리턴

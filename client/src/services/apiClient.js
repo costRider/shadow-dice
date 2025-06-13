@@ -17,7 +17,7 @@ async function handleResponse(res) {
         if (!msg) {
             if (res.status === 404) msg = '요청하신 리소스를 찾을 수 없습니다.';
             else if (res.status === 401) msg = '권한이 없습니다. 로그인 상태를 확인하세요.';
-            else msg = `서버 오류 (${res.status})`;
+            else;//msg = `서버 오류 (${res.status})`;
         }
         // 3) 토스트로 알림
         toast(msg);
