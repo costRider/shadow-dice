@@ -55,12 +55,6 @@ export function AvatarProvider({ children }) {
     }
   }, [user?.avatar_gender]);
 
-  /*
-    // ─── 4) 착장 상태 관리 (상점용) ───
-    const [avatarState, setAvatarState] = useState({
-      gender, equippedItems: {}, expression: "default", expNumber: 1
-    });
-  */
   // ─── 4) 착장 상태 관리 (상점용) ───
   //    + code: 어떤 base-avatar(meta.code)를 쓸지
   const [avatarState, setAvatarState] = useState({
@@ -72,26 +66,35 @@ export function AvatarProvider({ children }) {
   });
 
 
+  const previewEquip = ({ partCode, itemId, thumbnailUrl }) => {
+    console.log("프리뷰 요청 :", partCode, itemId, thumbnailUrl);
+    setAvatarState(prev => {
+      const eq = { ...prev.equippedItems };
 
-  const previewEquip = ({ partCode, itemId }) => {
-    setAvatarState(s => {
-      const eq = { ...s.equippedItems };
-      if (eq[partCode] === itemId) delete eq[partCode];
-      else eq[partCode] = itemId;
-      return { ...s, equippedItems: eq };
+      // 같은 아이템이면 해제
+      if (eq[partCode]?.id === itemId) {
+        delete eq[partCode];
+      } else {
+        eq[partCode] = { id: itemId, thumbnailUrl };
+      }
+
+      return { ...prev, equippedItems: eq };
     });
   };
-  const resetEquip = () => setAvatarState(s => ({ ...s, equippedItems: {} }));
-  /*
-    // ─── 5) getBodyLayer: targetGender 인자 추가 (변경) ───
-    function getBodyLayer(partCode, itemId, targetGender = gender) {
-      const list = avatarsByGender[targetGender] || [];
-      const meta = list.find(a => a.code === itemId)
-        || list.find(a => a.defaultItems?.some(d => d.id === itemId));
-      if (!meta?.image_path) return null;
-      return toAvatarUrl(meta.image_path);
+
+  //const resetEquip = () => setAvatarState(s => ({ ...s, equippedItems: {} }));
+
+  function resetEquip(partCode) {
+    if (!partCode) {
+      setAvatarState(prev => ({ ...prev, equippedItems: {} }));
+    } else {
+      setAvatarState(prev => {
+        const updated = { ...prev.equippedItems };
+        delete updated[partCode];
+        return { ...prev, equippedItems: updated };
+      });
     }
-  */
+  }
   // 로그인 유저 프로필이 바뀌면 code/표정도 갱신해 주기
   useEffect(() => {
     if (user) {
@@ -104,11 +107,42 @@ export function AvatarProvider({ children }) {
       }));
     }
   }, [user]);
+  /*
+    function getBodyLayer(partCode, itemId, targetGender = gender) {
+      console.log("겟 바디 요청:", itemId);
+      const list = avatarsByGender[targetGender] || [];
+  
+      // 1) defaultItems 에서 id 매핑 우선 찾기
+      for (const avatar of list) {
+        const def = avatar.defaultItems?.find(d => d.id === itemId);
+        if (def?.image_path) {
+          return toAvatarUrl(def.image_path);
+        }
+      }
+  
+      // 2) avatar.code 에 매핑
+      const meta = list.find(a => a.code === itemId);
+      console.log("선택템 path:", meta?.image_path);
+      if (meta?.image_path) {
+        return toAvatarUrl(meta.image_path);
+      }
+  
+      return null;
+    }
+  */
 
-  function getBodyLayer(partCode, itemId, targetGender = gender) {
+  function getBodyLayer(partCode, equippedItem, targetGender = gender) {
+    if (!equippedItem) return null;
+
+    // ① thumbnailUrl 직접 사용
+    if (typeof equippedItem === "object" && equippedItem.thumbnailUrl) {
+      return equippedItem.thumbnailUrl;
+    }
+
+    // ② fallback: 기존 defaultItems 구조 (id 매칭)
+    const itemId = typeof equippedItem === "object" ? equippedItem.id : equippedItem;
     const list = avatarsByGender[targetGender] || [];
 
-    // 1) defaultItems 에서 id 매핑 우선 찾기
     for (const avatar of list) {
       const def = avatar.defaultItems?.find(d => d.id === itemId);
       if (def?.image_path) {
@@ -116,15 +150,8 @@ export function AvatarProvider({ children }) {
       }
     }
 
-    // 2) avatar.code 에 매핑
-    const meta = list.find(a => a.code === itemId);
-    if (meta?.image_path) {
-      return toAvatarUrl(meta.image_path);
-    }
-
     return null;
   }
-
   // ─── 6) getExpressionLayer: targetGender 인자 추가 (변경) ───
   function getExpressionLayer(avatarCode, expKey, expNum, targetGender = gender) {
     const suffix = expKey === "default" ? "" : expNum;

@@ -51,11 +51,9 @@ export default function AvatarPreview({ state }) {
                     const def = defaultItems.find(d => d.part_code === partCode);
                     const itemId = equippedId || def?.id;
                     if (!itemId) return null;
-
                     // ③ context.gender(=contextGender) 기반으로 URL 획득
-                    const url = getBodyLayer(partCode, itemId);
+                    const url = getBodyLayer(partCode, itemId, state.gender);
                     if (!url) return null;
-
                     return (
                         <img
                             key={partCode}
@@ -69,7 +67,7 @@ export default function AvatarPreview({ state }) {
                 })}
 
             {expression && (() => {
-                const url = getExpressionLayer(code, expression, expNumber);
+                const url = getExpressionLayer(code, expression, expNumber, state.gender);
                 if (!url) return null;
                 return (
                     <img
