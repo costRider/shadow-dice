@@ -9,6 +9,7 @@ import useLobbyUsers from "@/hooks/useLobbyUsers";
 import FixedChatBox from "@/components/lobby/ChatBox";
 import ShopModal from '@/components/lobby/ShopModal';
 import UserProfileModal from "@/components/lobby/UserProfileModal";
+import AvatarRoomModal from "@/components/lobby/AvatarRoomModal";
 import { toast } from "@/context/ToastContext";
 
 const LobbyPage = () => {
@@ -19,6 +20,7 @@ const LobbyPage = () => {
     const [showShop, setShowShop] = useState(false);
     const [showPasswordPopup, setShowPasswordPopup] = useState(false);
     const [roomToEnter, setRoomToEnter] = useState(null);
+    const [showAvatarRoom, setShowAvatarRoom] = useState(false);
     const { logout, user } = useAuth();
     const { rooms } = useRooms();
     const { join } = useGameLobby();
@@ -156,6 +158,12 @@ const LobbyPage = () => {
                         방 입장
                     </button>
                     <button
+                        className="px-4 py-2 bg-green-600 text-white rounded"
+                        onClick={() => setShowAvatarRoom(true)}
+                    >
+                        아바타룸
+                    </button>
+                    <button
                         className="h-12 w-12 bg-yellow-400 text-white rounded hover:bg-yellow-500"
                         onClick={handleOpenShop}
                     >
@@ -208,6 +216,8 @@ const LobbyPage = () => {
                     )}
                 </div>
             </div>
+            {/* 아바타룸 모달 */}
+            {showAvatarRoom && <AvatarRoomModal onClose={() => setShowAvatarRoom(false)} />}
 
             {/* 프로필 모달 */}
             {profileId && (

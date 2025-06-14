@@ -14,7 +14,7 @@ export default function AvatarCostumeShopTab() {
     const { purchase } = usePurchase();
     const {
         gender,
-        avatarState,
+        previewOnlyState,
         previewEquip,
         resetEquip, // partCode도 받을 수 있도록 구현되어 있어야 함
     } = useAvatar();
@@ -29,7 +29,7 @@ export default function AvatarCostumeShopTab() {
 
     // 현재 선택된 아이템 목록
     const selectedItems = useMemo(() => {
-        return Object.entries(avatarState.equippedItems)
+        return Object.entries(previewOnlyState.equippedItems)
             .map(([part, info]) => {
                 const match = genderedItems.find(it =>
                     it.id === info?.id && it.metadata.part === part
@@ -38,10 +38,13 @@ export default function AvatarCostumeShopTab() {
                 return match;
             })
             .filter(Boolean);
-    }, [avatarState.equippedItems, genderedItems]);
+    }, [previewOnlyState.equippedItems, genderedItems]);
+    console.log("아이템샵 장착 아이템 목록:", previewOnlyState);
 
     const totalPrice = useMemo(
-        () => selectedItems.reduce((sum, it) => sum + it.price, 0),
+        () => selectedItems
+            .filter(it => !it.owned) // 🟡 보유하지 않은 아이템만 가격 계산
+            .reduce((sum, it) => sum + it.price, 0),
         [selectedItems]
     );
 
@@ -89,7 +92,7 @@ export default function AvatarCostumeShopTab() {
                     {genderedItems.map(item => {
                         const { id, price, owned, metadata: m, thumbnailUrl } = item;
                         const part = m.part;
-                        const isEquipped = avatarState.equippedItems[part]?.id === id;
+                        const isEquipped = previewOnlyState.equippedItems[part]?.id === id;
 
                         return (
                             <div key={id} className="border p-2 rounded flex flex-col items-center">
@@ -147,14 +150,23 @@ export default function AvatarCostumeShopTab() {
                 </button>
 
                 <div className="border p-4 rounded mb-4">
-                    <AvatarPreview state={avatarState} />
+                    <AvatarPreview state={previewOnlyState} />
                 </div>
 
                 <div className="mb-2">
                     <h4 className="text-sm font-bold mb-1">선택된 코스튬</h4>
                     <ul className="text-xs text-gray-700 list-disc ml-4">
                         {selectedItems.map(it => (
-                            <li key={it.id}>{it.metadata.name}</li>
+                            <li key={it.id} className="mb-1">
+                                <div className="font-medium flex items-center gap-1">
+                                    {it.metadata.description}
+                                    {it.owned && (
+                                        <span className="text-green-600 text-[11px] font-normal">
+                                            (보유중)
+                                        </span>
+                                    )}
+                                </div>
+                            </li>
                         ))}
                     </ul>
                 </div>

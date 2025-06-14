@@ -10,11 +10,6 @@ export default function AvatarPreview({ state }) {
         getExpressionLayer,
         gender,  // context.gender
     } = useAvatar();
-    /*
-        const { equippedItems = {}, expression, expNumber } = state;
-        const metaList = avatarsByGender[contextGender] || [];
-        const baseAvatar = metaList.find(a => a.default) || metaList[0];
-    */
 
     const {
         code: avatarCode,          // ← AvatarProvider 에서 넣어준 code
@@ -37,23 +32,25 @@ export default function AvatarPreview({ state }) {
     }
 
     const { width = 128, height = 128, code, defaultItems = [] } = baseAvatar;
-
+    //console.log("🔍 AvatarPreview props 상태:", state.equippedItems);
     return (
         <div className="relative" style={{ width, height }}>
             {Object.entries(partDepth)
                 .sort(([, d1], [, d2]) => d1 - d2)
                 .map(([partCode], idx) => {
                     if (partCode === "EXP") return null;
-
+                    //console.log("장착 템 정보:", equippedItems[partCode]);
                     // ① 미리보기로 장착된 아이템 우선
-                    const equippedId = equippedItems[partCode];
+                    const equipped = equippedItems[partCode]; // ← 변경
+                    const equippedId = typeof equipped === 'object' ? equipped.id : equipped;
                     // ② 없으면 기본(defaultItems)으로
                     const def = defaultItems.find(d => d.part_code === partCode);
                     const itemId = equippedId || def?.id;
                     if (!itemId) return null;
                     // ③ context.gender(=contextGender) 기반으로 URL 획득
-                    const url = getBodyLayer(partCode, itemId, state.gender);
+                    const url = getBodyLayer(partCode, equipped || itemId, state.gender); // ← 핵심
                     if (!url) return null;
+
                     return (
                         <img
                             key={partCode}

@@ -55,7 +55,7 @@ export function AvatarProvider({ children }) {
     }
   }, [user?.avatar_gender]);
 
-  // ─── 4) 착장 상태 관리 (상점용) ───
+  // ─── 4) 착장 상태 관리 (아바타룸) ───
   //    + code: 어떤 base-avatar(meta.code)를 쓸지
   const [avatarState, setAvatarState] = useState({
     gender,
@@ -65,71 +65,60 @@ export function AvatarProvider({ children }) {
     expNumber: user?.exp_number || 1,
   });
 
+  // 착장 상태 관리(상점용)
+  const [previewOnlyState, setPreviewOnlyState] = useState({
+    gender,
+    code: user?.avatar_code || "default",
+    equippedItems: {},
+    expression: user?.expression || "default",
+    expNumber: user?.exp_number || 1,
+  });
 
   const previewEquip = ({ partCode, itemId, thumbnailUrl }) => {
-    console.log("프리뷰 요청 :", partCode, itemId, thumbnailUrl);
-    setAvatarState(prev => {
-      const eq = { ...prev.equippedItems };
+    const url = thumbnailUrl.startsWith("/resources/")
+      ? thumbnailUrl
+      : `/resources/avatar/${thumbnailUrl}`;
 
-      // 같은 아이템이면 해제
-      if (eq[partCode]?.id === itemId) {
-        delete eq[partCode];
-      } else {
-        eq[partCode] = { id: itemId, thumbnailUrl };
-      }
-
-      return { ...prev, equippedItems: eq };
-    });
+    setAvatarState(prev => updateEquipState(prev, partCode, itemId, url));
+    setPreviewOnlyState(prev => updateEquipState(prev, partCode, itemId, url));
   };
 
-  //const resetEquip = () => setAvatarState(s => ({ ...s, equippedItems: {} }));
 
   function resetEquip(partCode) {
-    if (!partCode) {
-      setAvatarState(prev => ({ ...prev, equippedItems: {} }));
-    } else {
-      setAvatarState(prev => {
-        const updated = { ...prev.equippedItems };
-        delete updated[partCode];
-        return { ...prev, equippedItems: updated };
-      });
-    }
+    setAvatarState(prev => clearEquipState(prev, partCode));
+    setPreviewOnlyState(prev => clearEquipState(prev, partCode));
   }
-  // 로그인 유저 프로필이 바뀌면 code/표정도 갱신해 주기
+
+  function clearEquipState(prev, partCode) {
+    const eq = { ...prev.equippedItems };
+    if (partCode) delete eq[partCode];
+    else return { ...prev, equippedItems: {} };
+    return { ...prev, equippedItems: eq };
+  }
+
+  function updateEquipState(prev, partCode, itemId, url) {
+    const eq = { ...prev.equippedItems };
+    if (eq[partCode]?.id === itemId) {
+      delete eq[partCode];
+    } else {
+      eq[partCode] = { id: itemId, thumbnailUrl: url };
+    }
+    return { ...prev, equippedItems: eq };
+  }
+
   useEffect(() => {
     if (user) {
-      setAvatarState(s => ({
-        ...s,
+      const nextState = {
         gender: user.avatar_gender,
         code: user.avatar_code,
         expression: user.expression,
-        expNumber: user.exp_number
-      }));
+        expNumber: user.exp_number,
+        equippedItems: {},
+      };
+      setAvatarState(nextState);
+      setPreviewOnlyState(nextState);
     }
   }, [user]);
-  /*
-    function getBodyLayer(partCode, itemId, targetGender = gender) {
-      console.log("겟 바디 요청:", itemId);
-      const list = avatarsByGender[targetGender] || [];
-  
-      // 1) defaultItems 에서 id 매핑 우선 찾기
-      for (const avatar of list) {
-        const def = avatar.defaultItems?.find(d => d.id === itemId);
-        if (def?.image_path) {
-          return toAvatarUrl(def.image_path);
-        }
-      }
-  
-      // 2) avatar.code 에 매핑
-      const meta = list.find(a => a.code === itemId);
-      console.log("선택템 path:", meta?.image_path);
-      if (meta?.image_path) {
-        return toAvatarUrl(meta.image_path);
-      }
-  
-      return null;
-    }
-  */
 
   function getBodyLayer(partCode, equippedItem, targetGender = gender) {
     if (!equippedItem) return null;
@@ -162,7 +151,7 @@ export function AvatarProvider({ children }) {
   return (
     <AvatarContext.Provider value={{
       gender, setGender,
-      avatarsByGender, loadAvatars,
+      avatarsByGender, loadAvatars, previewOnlyState, setPreviewOnlyState,
       partDepth, expList, expCounts, toAvatarUrl,
       avatarState, previewEquip, resetEquip,
       getBodyLayer, getExpressionLayer
