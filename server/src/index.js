@@ -47,6 +47,7 @@ app.use(
     "/resources",
     express.static(path.join(__dirname, "../resources"))
 );
+app.use('/bgm', express.static(path.join(__dirname, '../resources', '4LEAF_BGM')));
 
 // 3. 정적 파일 서빙 (필요하다면)
 // app.use(express.static('public'));

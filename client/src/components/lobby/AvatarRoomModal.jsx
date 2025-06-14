@@ -20,7 +20,7 @@ export default function AvatarRoomModal({ onClose }) {
     const {
         gender,
         avatarState,
-        previewEquip,
+        applyEquip,
         resetEquip
     } = useAvatar();
 
@@ -37,7 +37,7 @@ export default function AvatarRoomModal({ onClose }) {
         Object.entries(equips).forEach(([partCode, itemId]) => {
             const item = inventory.find(i => String(i.item_id) === String(itemId));
             if (item) {
-                previewEquip({
+                applyEquip({
                     partCode,
                     itemId,
                     thumbnailUrl: `/resources/avatar/${item.image_path}`
@@ -56,7 +56,7 @@ export default function AvatarRoomModal({ onClose }) {
 
     const handleEquip = (item) => {
         equip(item.part_code, item.item_id);
-        previewEquip({
+        applyEquip({
             partCode: item.part_code,
             itemId: item.item_id,
             thumbnailUrl: `/resources/avatar/${item.image_path}`
@@ -105,7 +105,7 @@ export default function AvatarRoomModal({ onClose }) {
                                                     className="text-xs px-2 py-1 bg-red-500 text-white rounded"
                                                     onClick={() => handleUnequip(item)}
                                                 >
-                                                    탈차
+                                                    탈착
                                                 </button>
                                             ) : (
                                                 <button

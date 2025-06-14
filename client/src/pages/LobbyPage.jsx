@@ -149,25 +149,27 @@ const LobbyPage = () => {
 
                     <button
                         className={`px-6 py-3 rounded-lg text-white ${selectedRoom
-                            ? "bg-gradient-to-b from-blue-500 to-blue-700 hover:scale-105"
-                            : "bg-gray-400 cursor-not-allowed"
+                                ? "bg-gradient-to-b from-blue-500 to-blue-700 hover:scale-105"
+                                : "bg-gray-400 cursor-not-allowed"
                             } transition shadow-md`}
                         disabled={!selectedRoom}
                         onClick={() => selectedRoom && handleRoomEnter(selectedRoom)}
                     >
                         방 입장
                     </button>
+
                     <button
-                        className="px-4 py-2 bg-green-600 text-white rounded"
                         onClick={() => setShowAvatarRoom(true)}
+                        className="bg-gradient-to-b from-pink-500 to-pink-700 text-white px-6 py-3 rounded-lg hover:scale-105 transition shadow-md"
                     >
-                        아바타룸
+                        🧍 아바타룸
                     </button>
+
                     <button
-                        className="h-12 w-12 bg-yellow-400 text-white rounded hover:bg-yellow-500"
                         onClick={handleOpenShop}
+                        className="bg-gradient-to-b from-yellow-400 to-yellow-600 text-white px-6 py-3 rounded-lg hover:scale-105 transition shadow-md"
                     >
-                        상점🛒
+                        🛒 상점
                     </button>
                 </div>
 

@@ -79,10 +79,17 @@ export function AvatarProvider({ children }) {
       ? thumbnailUrl
       : `/resources/avatar/${thumbnailUrl}`;
 
-    setAvatarState(prev => updateEquipState(prev, partCode, itemId, url));
     setPreviewOnlyState(prev => updateEquipState(prev, partCode, itemId, url));
   };
 
+  // ✅ 실제 장착 정보 적용 (아바타룸용)
+  const applyEquip = ({ partCode, itemId, thumbnailUrl }) => {
+    const url = thumbnailUrl.startsWith("/resources/")
+      ? thumbnailUrl
+      : `/resources/avatar/${thumbnailUrl}`;
+
+    setAvatarState(prev => updateEquipState(prev, partCode, itemId, url));
+  };
 
   function resetEquip(partCode) {
     setAvatarState(prev => clearEquipState(prev, partCode));
@@ -150,7 +157,7 @@ export function AvatarProvider({ children }) {
 
   return (
     <AvatarContext.Provider value={{
-      gender, setGender,
+      gender, setGender, applyEquip,
       avatarsByGender, loadAvatars, previewOnlyState, setPreviewOnlyState,
       partDepth, expList, expCounts, toAvatarUrl,
       avatarState, previewEquip, resetEquip,

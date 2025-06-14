@@ -1,9 +1,10 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useShopItems, usePurchase } from "@/hooks/useShop";
 import { useAvatar } from "@/context/AvatarContext";
 import useAuth from "@/hooks/useAuth";
 import { useToast } from "@/context/ToastContext";
 import AvatarPreview from "@/components/ui/AvatarPreview";
+import { useAvatarEquips } from "@/hooks/useAvatarEquip";
 
 export default function AvatarCostumeShopTab() {
     const toast = useToast();
@@ -20,26 +21,39 @@ export default function AvatarCostumeShopTab() {
     } = useAvatar();
 
     const [buyingAll, setBuyingAll] = useState(false);
+    const initialCopied = useRef(false);
+
+    const {
+        inventory,
+        equips,
+        fetchInventory,
+        fetchEquips,
+    } = useAvatarEquips();
+
+    // 최초 데이터 fetch
+    useEffect(() => {
+        fetchInventory();
+        fetchEquips();
+    }, []);
 
     // 성별 필터
     const genderedItems = useMemo(
         () => items.filter(it => it.metadata.gender === gender),
         [items, gender]
     );
-
     // 현재 선택된 아이템 목록
     const selectedItems = useMemo(() => {
         return Object.entries(previewOnlyState.equippedItems)
             .map(([part, info]) => {
                 const match = genderedItems.find(it =>
-                    it.id === info?.id && it.metadata.part === part
+                    String(it.id) === String(info?.id) && it.metadata.part === part
                 );
                 console.log("🔍 매칭 검사:", { part, id: info?.id, match });
                 return match;
             })
             .filter(Boolean);
     }, [previewOnlyState.equippedItems, genderedItems]);
-    console.log("아이템샵 장착 아이템 목록:", previewOnlyState);
+    //console.log("아이템샵 장착 아이템 목록:", previewOnlyState);
 
     const totalPrice = useMemo(
         () => selectedItems
@@ -58,6 +72,37 @@ export default function AvatarCostumeShopTab() {
         }
     };
 
+    const restoreEquips = () => {
+        resetEquip(); // 미리보기 상태 초기화
+        Object.entries(equips).forEach(([partCode, itemId]) => {
+            const item = inventory.find(i => String(i.item_id) === String(itemId));
+            if (item) {
+                previewEquip({
+                    partCode,
+                    itemId,
+                    thumbnailUrl: `/resources/avatar/${item.image_path}`
+                });
+            }
+        });
+    };
+
+    useEffect(() => {
+        if (initialCopied.current || !Object.keys(equips || {}).length || !inventory.length) return;
+
+        Object.entries(equips).forEach(([partCode, itemId]) => {
+            const item = inventory.find(i => String(i.item_id) === String(itemId));
+            if (item) {
+                previewEquip({
+                    partCode,
+                    itemId,
+                    thumbnailUrl: `/resources/avatar/${item.image_path}`
+                });
+            }
+        });
+
+        initialCopied.current = true;
+    }, [equips, inventory]);
+
     const handleBuyAll = async () => {
         if (totalPrice === 0) return;
         if (totalPrice > gp) {
@@ -66,7 +111,6 @@ export default function AvatarCostumeShopTab() {
         }
 
         setBuyingAll(true);
-
         // ❗ selectedItems를 기준으로 구매 (owned 아닌 것만)
         for (const item of selectedItems) {
             if (!item.owned) {
@@ -144,7 +188,7 @@ export default function AvatarCostumeShopTab() {
 
                 <button
                     className="px-2 py-1 text-xs bg-red-200 rounded hover:bg-red-300 mb-2"
-                    onClick={() => resetEquip()}
+                    onClick={() => restoreEquips()}
                 >
                     장착 초기화
                 </button>
