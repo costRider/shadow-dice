@@ -1,8 +1,7 @@
 // src/pages/GamePage.jsx
-import React, { useEffect, useContext } from "react";
+import React, { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAvatar } from "@/context/AvatarContext";
-import { UserContext } from "@/context/UserContext";
 
 const GamePage = () => {
     const location = useLocation();

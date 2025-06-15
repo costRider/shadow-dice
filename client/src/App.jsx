@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import GameTestPage from "@/pages/GameTestPage";
 
 // Context & Hooks
 import usePageBgm from '@/hooks/usePageBgm';
@@ -40,6 +41,7 @@ function AppContent() {
           <Route path="/lobby" element={<LobbyPage />} />
           <Route path="/gamelobby" element={<GameLobby />} />
           <Route path="/game" element={<GamePage />} />
+          <Route path="/game-test" element={<GameTestPage />} />
         </Routes>
         <PageBgmController />
       </BgmProvider>
