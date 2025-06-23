@@ -2,6 +2,7 @@
 import React from "react";
 
 export default function PlayerPiece({ tile, nickname }) {
+    if (!tile) return null;
     const size = 20;
 
     return (

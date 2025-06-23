@@ -2,6 +2,7 @@
 import React from "react";
 
 export default function DicePanel({ onRoll, diceValue, currentPlayer, disabled }) {
+    if (!currentPlayer) return null;
     return (
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white text-center">
             <p className="mb-2 text-lg font-semibold">

@@ -1,12 +1,15 @@
-// src/components/game/GamePage.jsx
-import React, { useState, useEffect } from "react";
+// ✅ GamePage.jsx (최종 리팩토링: 전투 + 타일 효과 + 분기 + 세금/어빌리티 UI 복구 및 전투 턴 통합)
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import TileMap from "./TileMap";
 import PlayerPiece from "./PlayerPiece";
 import DicePanel from "./DicePanel";
+import BattleManager from "./battle/BattleManager";
+import BattleModal from "./battle/BattleModal";
 import { tiles } from "@/data/testTiles";
+import { handleTileEffect, setTileEffectHandlers } from "@/components/game/tileEffects";
+import { getRandomItem } from "@/components/game/utils/itemUtils";
 
 export default function GamePage({ initialPlayers }) {
-    // 🎮 게임 상태 관련 state
     const [players, setPlayers] = useState(initialPlayers);
     const [currentTurn, setCurrentTurn] = useState(0);
     const [dice, setDice] = useState(null);
@@ -15,180 +18,362 @@ export default function GamePage({ initialPlayers }) {
     const [isWaitingDirection, setIsWaitingDirection] = useState(false);
     const [availableDirections, setAvailableDirections] = useState(null);
     const [remainingSteps, setRemainingSteps] = useState(0);
+    const [diceLimitMap, setDiceLimitMap] = useState({});
+    const [gameEnded, setGameEnded] = useState(false);
+    const [awaitingTaxRoll, setAwaitingTaxRoll] = useState(false);
+    const [pendingTaxPlayerId, setPendingTaxPlayerId] = useState(null);
+    const taxEndTurnRef = useRef(null);
+    const [awaitingAbilityRoll, setAwaitingAbilityRoll] = useState(false);
+    const [pendingAbilityPlayerId, setPendingAbilityPlayerId] = useState(null);
+    const [abilityRolls, setAbilityRolls] = useState([]);
+    const abilityEndTurnRef = useRef(null);
+    const [questionTileMap, setQuestionTileMap] = useState({});
+    const [jokerTempMap, setJokerTempMap] = useState({});
+    const savedTurnRef = useRef(null);
+    const [prisonTurnMap, setPrisonTurnMap] = useState({});
+    const [awaitingDOARoll, setAwaitingDOARoll] = useState(false);
+    const [doaTarget, setDoaTarget] = useState(null);
+    const doaEndTurnRef = useRef(null);
+    const [mapAttribute, setMapAttribute] = useState("NONE");
 
-    //START 타일 찾기
-    const getStartTileId = () => {
-        const startTile = tiles.find(t => t.type === "START");
-        return startTile ? startTile.id : 0; // fallback to 0 if not found
+    const getStartTileId = () => tiles.find(t => t.type === "START")?.id || 0;
+
+    const defaultEndTurn = useCallback(() => {
+        setIsMoving(false);
+        setCurrentTurn(prev => {
+            const next = (prev + 1) % players.length;
+            const nextPlayer = players[next];
+            const nextTile = tiles.find(t => t.id === nextPlayer.position);
+            if (nextTile) {
+                setCameraPos({ x: nextTile.x, y: nextTile.y });
+                console.log("🎯 [턴 전환] 다음 플레이어:", nextPlayer.nickname);
+                console.log("📸 [카메라 이동] 좌표:", nextTile.x, nextTile.y);
+            }
+            return next;
+        });
+    }, [players]);
+
+    const handleBackwardMove = async (steps, playerId, endTurnCallback = defaultEndTurn) => {
+        const player = players.find(p => p.id === playerId);
+        if (!player || !player.movePath) return endTurnCallback();
+
+        const path = [...player.movePath];
+        path.pop(); // 현재 위치 제거
+        const backPath = path.slice(-steps).reverse();
+        console.log("🔙 [역방향 이동]", backPath);
+
+        for (const id of backPath) {
+            await new Promise(r => setTimeout(r, 300));
+            await moveTo(id);
+        }
+        endTurnCallback();
     };
 
-    // 🧭 특정 타일로 이동 + 카메라 이동 + 효과 로그 출력
-    const moveTo = async (nextId) => {
-        console.log("이동할 ID", nextId);
-        const tile = tiles.find(t => t.id === nextId);
+    const moveTo = async (id) => {
+        const tile = tiles.find(t => t.id === id);
         if (!tile) return;
-
+        console.log("🚶 [moveTo] 타일 이동:", id);
         setPlayers(prev => {
             const updated = [...prev];
             updated[currentTurn] = {
                 ...updated[currentTurn],
-                position: nextId
+                position: id,
+                gp: (updated[currentTurn].gp || 0) + 1,
+                movePath: [...(updated[currentTurn].movePath || []), id],
             };
             return updated;
         });
-
         setCameraPos({ x: tile.x, y: tile.y });
-
-        console.log(`📍 이동 → Tile ${tile.id} [${tile.type}]`);
-
-        switch (tile.type) {
-            case "TREASURE":
-                console.log("✨ 보물상자 도착: 아이템 획득 예정");
-                break;
-            case "GOAL":
-                console.log("🏁 GOAL 도착: 게임 종료 조건 진입");
-                break;
-            case "CUP":
-                console.log("🧠 컵 속성: 지력 보너스 효과 적용 예정");
-                break;
-            default:
-                console.log("➖ 일반 타일 도착");
-        }
+        return tile.id;
     };
 
-    // 🎲 주사위 수만큼 이동하는 재귀적 이동 함수
-    const handleMoveStep = async (remainingSteps, currentId) => {
-        const tile = tiles.find(t => t.id === currentId);
-        const dirKeys = Object.keys(tile.directions || {});
+    const handleDOADiceRoll = () => {
+        const player = players[currentTurn];
+        const rolled = Math.floor(Math.random() * 6) + 1;
+        console.log("🎯 [DOA] 목표값:", doaTarget, "/ 사용자 주사위:", rolled);
+        const diff = Math.abs(doaTarget - rolled);
+        if (diff === 0) {
+            console.log("✅ [DOA] 값 일치 → 통과");
+            doaEndTurnRef.current?.();
+        } else if (diff <= 2) {
+            console.log(`🔁 [DOA] ${diff} 차이 → ${diff * 2}칸 후퇴`);
+            handleBackwardMove(diff * 2, player.id, doaEndTurnRef.current);
+        } else {
+            console.log("🏚️ [DOA] 차이 3 이상 → START로 이동");
+            moveTo(getStartTileId());
+            doaEndTurnRef.current?.();
+        }
+        setAwaitingDOARoll(false);
+        setDoaTarget(null);
+    };
 
+    const handleMoveStep = async (steps, currentId, endTurnCallback = defaultEndTurn) => {
+        console.log("🧭 [handleMoveStep] 이동 시작:", steps, "현재 타일:", currentId);
+        const tile = tiles.find(t => t.id === currentId);
+        if (!tile) return;
+
+        const dirKeys = Object.keys(tile.directions || {});
         if (dirKeys.length > 1) {
-            console.log("🛑 분기점 도착 → 방향 선택 대기");
+            console.log("🔀 분기 선택 필요:", dirKeys);
             setIsWaitingDirection(true);
             setAvailableDirections(tile.directions);
-            setRemainingSteps(remainingSteps);
+            setRemainingSteps(steps);
             return;
         }
-
-        if (dirKeys.length === 0) {
-            console.log("🚫 이동 불가 → 턴 종료");
-            setIsMoving(false);
-            setCurrentTurn((prev) => (prev + 1) % players.length);
-            return;
-        }
+        if (dirKeys.length === 0) return endTurnCallback();
 
         const nextId = tile.directions[dirKeys[0]];
-        console.log("➡️ 다음 타일 ID:", nextId);
-
-        await new Promise(res => setTimeout(res, 400));
+        await new Promise(r => setTimeout(r, 400));
         await moveTo(nextId);
 
-        const nextStep = remainingSteps - 1;
-        console.log(`📦 남은 스텝: ${nextStep}`);
+        const nextStep = steps - 1;
+        const player = players[currentTurn];
+        const nextTile = tiles.find(t => t.id === nextId);
+
+        if (gameEnded) return;
+
+        // 전투 감지
+        if (nextTile?.type === "BATTLE") {
+            const defender = players.find(p => p.id !== player.id && p.position === nextId);
+            if (defender) {
+                console.log("⚔️ [전투 시작]", player.nickname, "vs", defender.nickname);
+                savedTurnRef.current = currentTurn;
+                await BattleManager.startBattle({
+                    attacker: player,
+                    defender,
+                    onEnd: (result) => {
+                        handleBattleEnd(result);
+                        endTurnCallback();
+                    },
+                    mapAttribute, // 현재 GamePage state로부터 전달
+                });
+                return;
+            }
+        }
 
         if (nextStep > 0) {
-            setTimeout(() => handleMoveStep(nextStep, nextId), 400);
+            setTimeout(() => handleMoveStep(nextStep, nextId, endTurnCallback), 400);
         } else {
-            console.log("🔚 이동 종료 → 다음 턴으로");
-            setIsMoving(false);
-            setCurrentTurn((prevTurn) => (prevTurn + 1) % players.length);
+            const finalTile = tiles.find(t => t.id === nextId);
+            const player = players[currentTurn];
+            const result = await handleTileEffect(finalTile.type, player, finalTile.id, jokerTempMap);
+            if (typeof result === "function") result(nextId, endTurnCallback, player);
+            else endTurnCallback();
         }
     };
 
-    // 🎲 주사위 굴리기 시작
-    const handleRollDice = async () => {
-        if (isMoving || isWaitingDirection) return;
-        const rolled = Math.floor(Math.random() * 6) + 1;
-        console.log(`🎲 주사위 결과: ${rolled}`);
+    const handleBattleEnd = (result) => {
+        console.log("🏁 [전투 종료] 결과:", result);
+        const { loserId, stepsBack, backToStart } = result || {};
+        if (!loserId) return;
+        const loser = players.find(p => p.id === loserId);
+        if (!loser) return;
 
+        if (backToStart) {
+            const id = getStartTileId();
+            moveTo(id);
+            return;
+        }
+
+        const path = [...(loser.movePath || [])];
+        path.pop();
+        const backPath = path.slice(-stepsBack);
+        const target = backPath[0] || getStartTileId();
+        mapAttribute
+            (async () => {
+                for (let i = backPath.length - 1; i >= 0; i--) {
+                    await new Promise(r => setTimeout(r, 300));
+                    moveTo(backPath[i]);
+                }
+            })();
+    };
+
+    const handleRollDice = () => {
+        const player = players[currentTurn];
+        const prisonTurns = prisonTurnMap[player.id] || 0;
+        if (prisonTurns > 0) {
+            console.log(`🚫 [PRISON] ${player.nickname} 감옥 턴 남음:`, prisonTurns);
+            const roll1 = Math.floor(Math.random() * 6) + 1;
+            const roll2 = Math.floor(Math.random() * 6) + 1;
+            console.log("🎲 [PRISON] 탈출 주사위 결과:", roll1, roll2);
+            if (roll1 === roll2) {
+                console.log("🔓 [PRISON] 탈출 성공!");
+                setPrisonTurnMap(prev => {
+                    const updated = { ...prev };
+                    delete updated[player.id];
+                    return updated;
+                });
+            } else {
+                console.log("⛓️ [PRISON] 탈출 실패, 턴 차감");
+                setPrisonTurnMap(prev => ({ ...prev, [player.id]: prisonTurns - 1 }));
+                defaultEndTurn();
+                return;
+            }
+        }
+
+        const limit = diceLimitMap[player.id];
+        const rolled = limit === "SPADE"
+            ? Math.floor(Math.random() * 3) + 1
+            : limit === "CLOVER"
+                ? Math.floor(Math.random() * 3) + 4
+                : Math.floor(Math.random() * 6) + 1;
+
+        // 맵 속성에 따른 DISK 이동 보정
+        if (player.chessmanType === "DISK" && mapAttribute === "DISK") {
+            rolled += 2;
+            console.log("📈 [DISK] 맵 속성 보정 +2");
+        } else if (player.chessmanType === "DISK" && mapAttribute === "WAND") {
+            rolled -= 2;
+            console.log("📉 [WAND] 맵 속성 보정 -2");
+        }
+        //rolled = Math.max(1, rolled); // 최소 1 보장
+
+        console.log("🎲 [주사위] 결과:", rolled);
+        setDiceLimitMap(prev => { const p = { ...prev }; delete p[player.id]; return p; });
         setDice(rolled);
         setIsMoving(true);
         setRemainingSteps(rolled);
-
-        handleMoveStep(rolled, players[currentTurn].position);
+        handleMoveStep(rolled, player.position);
     };
 
-    // ↪️ 분기점에서 사용자가 방향 선택
     const handleChooseDirection = async (dir) => {
-
         const tile = tiles.find(t => t.id === players[currentTurn].position);
         const nextId = tile.directions[dir];
-
-        console.log(`🧭 선택 방향: ${dir} → 다음 ID: ${nextId}`);
-
         setIsWaitingDirection(false);
         setAvailableDirections(null);
-
-        await new Promise(res => setTimeout(res, 400));
+        await new Promise(r => setTimeout(r, 400));
         await moveTo(nextId);
-
         const nextStep = remainingSteps - 1;
         setRemainingSteps(nextStep);
-        console.log(`📦 분기 후 남은 스텝: ${nextStep}`);
-
         if (nextStep > 0) {
             setTimeout(() => handleMoveStep(nextStep, nextId), 400);
         } else {
-            console.log("🔚 이동 종료 → 다음 턴으로");
-            setIsMoving(false);
-            setCurrentTurn((prevTurn) => (prevTurn + 1) % players.length);
+            const finalTile = tiles.find(t => t.id === nextId);
+            const player = players[currentTurn];
+            const result = await handleTileEffect(finalTile?.type, player, finalTile?.id, jokerTempMap);
+            if (typeof result === "function") result(nextId, defaultEndTurn);
+            else defaultEndTurn();
         }
     };
 
-    //GO 타일에서 시작
+    const handleTaxRoll = () => {
+        const roll = Math.floor(Math.random() * 6) + 1;
+        const addTax = roll * 3;
+        setPlayers(prev => prev.map(p => p.id === pendingTaxPlayerId ? { ...p, taxRate: (p.taxRate || 0) + addTax } : p));
+        setAwaitingTaxRoll(false);
+        setPendingTaxPlayerId(null);
+        taxEndTurnRef.current?.();
+        taxEndTurnRef.current = null;
+    };
+
+    const handleAbilityDiceRoll = () => {
+        const roll = Math.floor(Math.random() * 6) + 1;
+        const updatedRolls = [...abilityRolls, roll];
+        setAbilityRolls(updatedRolls);
+        if (updatedRolls.length === 2) {
+            const updatedPlayers = [...players];
+            const abilityPlayer = updatedPlayers.find(p => p.id === pendingAbilityPlayerId);
+            if (updatedRolls[0] === updatedRolls[1]) abilityPlayer.abilityGauge = 100;
+            console.log("어빌리티 주사위 결과:", updatedRolls);
+            setPlayers(updatedPlayers);
+            setAwaitingAbilityRoll(false);
+            setPendingAbilityPlayerId(null);
+            setAbilityRolls([]);
+            abilityEndTurnRef.current?.();
+            abilityEndTurnRef.current = null;
+        }
+    };
+
     useEffect(() => {
-        const startId = getStartTileId();
-        setPlayers(prev =>
-            prev.map(p => ({ ...p, position: startId }))
-        );
-        setCameraPos({ x: tiles[startId].x, y: tiles[startId].y });
+        const id = getStartTileId();
+        setPlayers(prev => prev.map(p => ({ ...p, position: id, movePath: [id], items: Array.from({ length: 3 }, getRandomItem), abilityGauge: 0 })));
+        setCameraPos({ x: tiles[id].x, y: tiles[id].y });
     }, []);
 
-    // 📷 플레이어 기준으로 카메라 자동 이동
     useEffect(() => {
-        const current = players[currentTurn];
-        const tile = tiles.find(t => t.id === current.position);
-        setCameraPos({ x: tile.x, y: tile.y });
-    }, [players[currentTurn].position]);
+        const tile = tiles.find(t => t.id === players[currentTurn]?.position);
+        if (tile) {
+            setCameraPos({ x: tile.x, y: tile.y });
+            console.log("🎯 [카메라 동기화] 현재 턴:", players[currentTurn]?.nickname, "→ 위치:", tile.id);
+        }
+        setTileEffectHandlers({
+            setMapAttribute,
+            forceMoveHandler: (steps, from, cb) => setTimeout(() => handleMoveStep(steps, from, cb), 400),
+            setDiceLimitMap,
+            onGameEnd: () => setGameEnded(true),
+            awaitTaxRoll: (playerId, cb) => { setPendingTaxPlayerId(playerId); setAwaitingTaxRoll(true); taxEndTurnRef.current = cb; },
+            awaitAbilityRoll: (playerId, cb) => { setPendingAbilityPlayerId(playerId); setAwaitingAbilityRoll(true); abilityEndTurnRef.current = cb; },
+            getQuestionTileMap: () => questionTileMap,
+            updateQuestionTileMap: (tid, val) => setQuestionTileMap(prev => ({ ...prev, [tid]: val })),
+            updateJokerTempType: (tid, val) => setJokerTempMap(prev => ({ ...prev, [tid]: val })),
+            revertJokerTile: (tid) => setJokerTempMap(prev => { const u = { ...prev }; delete u[tid]; return u; }),
+            setPrisonTurn: (playerId, turns) => {
+                console.log("🚫 [PRISON]", playerId, "→", turns, "턴 동안 이동 금지");
+                setPrisonTurnMap(prev => ({ ...prev, [playerId]: turns }));
+            },
+            awaitDOARoll: (playerId, target, cb) => {
+                console.log("🎯 [DOA] 대기 시작 → 목표:", target);
+                setAwaitingDOARoll(true);
+                setDoaTarget(target);
+                doaEndTurnRef.current = cb;
+            },
+            moveTo: moveTo,
+            getTiles: () => tiles, // ✅ 여기서 tiles 전달
+        });
+    }, [players, currentTurn]);
 
     return (
         <div className="w-full h-screen bg-gray-600 relative overflow-hidden">
-            {/* 전체 카메라 트래킹 wrapper */}
-            <div
-                className="absolute w-full h-full"
-                style={{
-                    transform: `translate(${-cameraPos.x + window.innerWidth / 2}px, ${-cameraPos.y + window.innerHeight / 2}px)`,
-                    transition: 'transform 0.8s ease-out',
-                }}
-            >
+            <div className="absolute w-full h-full" style={{ transform: `translate(${-cameraPos.x + window.innerWidth / 2}px, ${-cameraPos.y + window.innerHeight / 2}px)`, transition: 'transform 0.8s ease-out' }}>
                 <TileMap tiles={tiles} />
-                {players.map((player) => (
-                    <PlayerPiece
-                        key={player.id}
-                        tile={tiles.find(t => t.id === player.position)}
-                        nickname={player.nickname}
-                    />
-                ))}
+                {players.map(p => <PlayerPiece key={p.id} tile={tiles.find(t => t.id === p.position)} nickname={p.nickname} />)}
             </div>
 
-            <DicePanel
-                onRoll={handleRollDice}
-                diceValue={dice}
-                currentPlayer={players[currentTurn]}
-                disabled={isMoving || isWaitingDirection}
-            />
+            <DicePanel onRoll={handleRollDice} diceValue={dice} currentPlayer={players[currentTurn]} disabled={isMoving || isWaitingDirection || awaitingTaxRoll || awaitingAbilityRoll || BattleManager._state.get()} />
+            <BattleModal onBattleResolved={handleBattleEnd} />
 
-            {/* 🔀 분기 선택 UI */}
+            {awaitingTaxRoll && (
+                <div className="absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+                    <div className="bg-white p-6 rounded shadow-lg text-center">
+                        <p className="mb-4 text-xl font-bold">세금 주사위를 굴려주세요!</p>
+                        <button onClick={handleTaxRoll} className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded font-bold">🎲 주사위 굴리기</button>
+                    </div>
+                </div>
+            )}
+
+            {awaitingAbilityRoll && (
+                <div className="absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+                    <div className="bg-white p-6 rounded shadow-lg text-center">
+                        <p className="mb-4 text-xl font-bold">{abilityRolls.length === 0 ? "첫 번째 주사위를 굴리세요!" : "두 번째 주사위를 굴리세요!"}</p>
+                        <button onClick={handleAbilityDiceRoll} className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded font-bold">🎲 주사위 굴리기</button>
+                    </div>
+                </div>
+            )}
+
+            {gameEnded && (
+                <div className="absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+                    <div className="text-white text-4xl font-bold">🎊 게임 종료!</div>
+                </div>
+            )}
+
             {isWaitingDirection && availableDirections && (
                 <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-50">
-                    {Object.entries(availableDirections).map(([dir, id]) => (
-                        <button
-                            key={dir}
-                            onClick={() => handleChooseDirection(dir)}
-                            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded shadow"
-                        >
+                    {Object.entries(availableDirections).map(([dir]) => (
+                        <button key={dir} onClick={() => handleChooseDirection(dir)} className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded shadow">
                             {dir}
                         </button>
                     ))}
+                </div>
+            )}
+
+            {awaitingDOARoll && (
+                <div className="absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+                    <div className="bg-white p-6 rounded shadow-lg text-center">
+                        <p className="mb-4 text-xl font-bold">DOA 주사위를 굴려주세요! (목표: {doaTarget})</p>
+                        <button onClick={handleDOADiceRoll} className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded font-bold">
+                            🎲 DOA 굴리기
+                        </button>
+                    </div>
                 </div>
             )}
         </div>
