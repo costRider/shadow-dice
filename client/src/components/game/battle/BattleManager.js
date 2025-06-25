@@ -1,6 +1,7 @@
 let resolveAttack;
 let resolveDefense;
 let resolveItemPhase;
+let hasEnded = false;
 
 function applyAttackBonus(baseRoll, attacker, mapAttr) {
     if (mapAttr === "SWORD" && attacker.chessmanType === "SWORD") {
@@ -23,7 +24,6 @@ function applyDefenseBonus(baseRoll, defender, mapAttr) {
     }
     return baseRoll;
 }
-
 
 const BattleManager = {
     _state: (() => {
@@ -101,22 +101,6 @@ const BattleManager = {
 
                 const adjustedRoll = applyAttackBonus(roll, prev.attacker, prev.mapAttribute);
                 console.log(`🎲 [resolveAttack] 원본:${roll}, 보정 후:${adjustedRoll}`);
-                const { attacker, mapAttribute } = prev;
-
-                // SWORD 속성 공격자 + SWORD 맵이면 +2
-                if (attacker.chessmanType === "SWORD" && mapAttribute === "SWORD") {
-                    adjustedRoll += 2;
-                    console.log("🗡️ [속성 보정] SWORD 공격자 +2");
-                }
-                // DISK 속성 공격자 + WAND 맵이면 -2
-                if (attacker.chessmanType === "DISK" && mapAttribute === "WAND") {
-                    adjustedRoll -= 2;
-                    console.log("📉 [속성 보정] DISK 공격자 -2");
-                }
-
-                //adjustedRoll = Math.max(1, adjustedRoll); // 주사위는 최소 1 보장
-
-                console.log(`🎲 [resolveAttack] 공격자 주사위: ${roll} → 보정 후: ${adjustedRoll}`);
 
                 BattleManager._state.set({
                     ...prev,
@@ -134,37 +118,22 @@ const BattleManager = {
                 const adjustedRoll = applyDefenseBonus(roll, prev.defender, prev.mapAttribute);
                 console.log(`🛡️ [resolveDefense] 원본:${roll}, 보정 후:${adjustedRoll}`);
 
-                // WAND 속성 방어자 + WAND 맵이면 +2
-                if (defender.chessmanType === "WAND" && mapAttribute === "WAND") {
-                    adjustedRoll += 2;
-                    console.log("🔮 [속성 보정] WAND 방어자 +2");
-                }
-                // WAND 속성 방어자 + DISK 맵이면 -2
-                if (defender.chessmanType === "WAND" && mapAttribute === "DISK") {
-                    adjustedRoll -= 2;
-                    console.log("📉 [속성 보정] WAND 방어자 -2");
-                }
-
-                //adjustedRoll = Math.max(1, adjustedRoll); // 최소 1 보장
-
-                console.log(`🛡️ [resolveDefense] 방어자 주사위: ${roll} → 보정 후: ${adjustedRoll}`);
-
                 if (attackRoll === adjustedRoll) {
                     console.log("⚔️ [resolveDefense] 재전투 발생! (동일한 주사위)");
                     BattleManager._state.set(null);
                     resolveItemPhase = null;
                     resolveAttack = null;
                     resolveDefense = null;
-
+                    asEnded = false;
                     setTimeout(() => {
                         console.log("🔁 [resolveDefense] 재전투 시작");
-                        BattleManager.startBattle({ attacker, defender, onEnd });
+                        BattleManager.startBattle({ attacker, defender, onEnd, mapAttribute });
                     }, 300);
                     return;
                 }
 
                 const diff = Math.abs(attackRoll - adjustedRoll);
-                const loserId = attackRoll < adjustedRoll ? attacker.id : defender.id;
+                const loserId = attackRoll > adjustedRoll ? defender.id : attacker.id;
                 const backToStart = diff >= 7;
                 const result = { loserId, stepsBack: backToStart ? 0 : diff, backToStart };
 
@@ -179,6 +148,9 @@ const BattleManager = {
 
                 setTimeout(() => {
                     console.log("🧹 [resolveDefense] 전투 종료 후 상태 초기화 및 후처리");
+                    if (hasEnded) return;
+                    hasEnded = true;
+
                     resolveItemPhase = null;
                     resolveAttack = null;
                     resolveDefense = null;

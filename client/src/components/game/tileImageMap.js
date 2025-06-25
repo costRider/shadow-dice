@@ -1,0 +1,30 @@
+const tileTypeToImageMap = {
+    NORMAL: "/resources/foothold/NORMAL_tile.png",
+    START: "/resources/foothold/START_tile.png",
+    GOAL: "/resources/foothold/GOAL_tile.png",
+    BATTLE: "/resources/foothold/BATTLE_tile.png",
+    TREASURE: "/resources/foothold/TREASURE_tile.png",
+    CURSE: "/resources/foothold/CURSE_tile.png",
+    BLESS: "/resources/foothold/BLESS_tile.png",
+    PLUS3: "/resources/foothold/PLUS3_tile.png",
+    PLUS4: "/resources/foothold/PLUS4_tile.png",
+    ABIL: "/resources/foothold/ABIL_tile.png",
+    ABIL25: "/resources/foothold/ABIL25_tile.png",
+    QUESTION: "/resources/foothold/QUESTION_tile.png",
+    JOKER: "/resources/foothold/JOKER_tile.png",
+    PRISON: "/resources/foothold/PRISON_tile.png",
+    TAX: "/resources/foothold/TAX_tile.png",
+    DOA: "/resources/foothold/DOA_tile.png",
+    DISK: "/resources/foothold/DISK_tile.png",
+    WAND: "/resources/foothold/WAND_tile.png",
+    SPADE: "/resources/foothold/SPADE_tile.png",
+    CUP: "/resources/foothold/CUP_tile.png",
+    SWORD: "/resources/foothold/SWORD_tile.png",
+    WARP1: "/resources/foothold/WARP1_tile.png",
+    WARP2: "/resources/foothold/WARP2_tile.png",
+    WARP3: "/resources/foothold/WARP3_tile.png",
+    // 기본 fallback 이미지
+    DEFAULT: "/resources/foothold/NORMAL_tile.png",
+};
+
+export default tileTypeToImageMap;

@@ -4,9 +4,16 @@
 @import "tailwindcss";
 /* index.css */
 html,
-body,
+//body,
 #root {
   height: 100%;
+},
+
+body {
+  background-color: #222;
+  background-image: url('/resources/bg/gameBackground.png');
+  background-repeat: repeat;
+  background-size: 1024px 1024px;
 }
 /*
 :root {

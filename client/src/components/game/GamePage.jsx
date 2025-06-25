@@ -5,16 +5,22 @@ import PlayerPiece from "./PlayerPiece";
 import DicePanel from "./DicePanel";
 import BattleManager from "./battle/BattleManager";
 import BattleModal from "./battle/BattleModal";
-import { tiles } from "@/data/testTiles";
+//import { tiles } from "@/data/testTiles";
 import { handleTileEffect, setTileEffectHandlers } from "@/components/game/tileEffects";
 import { getRandomItem } from "@/components/game/utils/itemUtils";
 
 export default function GamePage({ initialPlayers }) {
+    const [tiles, setTiles] = useState([]);
+    const [map, setMap] = useState(null);
     const [players, setPlayers] = useState(initialPlayers);
     const [currentTurn, setCurrentTurn] = useState(0);
     const [dice, setDice] = useState(null);
     const [isMoving, setIsMoving] = useState(false);
-    const [cameraPos, setCameraPos] = useState({ x: tiles[0].x, y: tiles[0].y });
+    const [cameraPos, setCameraPos] = useState(() => {
+        const t = tiles[0];
+        return t ? { x: t.x, y: t.y } : { x: 0, y: 0 };
+    });
+    const [shufflingTileMap, setShufflingTileMap] = useState({});
     const [isWaitingDirection, setIsWaitingDirection] = useState(false);
     const [availableDirections, setAvailableDirections] = useState(null);
     const [remainingSteps, setRemainingSteps] = useState(0);
@@ -37,6 +43,8 @@ export default function GamePage({ initialPlayers }) {
     const [mapAttribute, setMapAttribute] = useState("NONE");
 
     const getStartTileId = () => tiles.find(t => t.type === "START")?.id || 0;
+
+
 
     const defaultEndTurn = useCallback(() => {
         setIsMoving(false);
@@ -167,6 +175,7 @@ export default function GamePage({ initialPlayers }) {
         const { loserId, stepsBack, backToStart } = result || {};
         if (!loserId) return;
         const loser = players.find(p => p.id === loserId);
+        console.log("루져:", loser);
         if (!loser) return;
 
         if (backToStart) {
@@ -179,13 +188,12 @@ export default function GamePage({ initialPlayers }) {
         path.pop();
         const backPath = path.slice(-stepsBack);
         const target = backPath[0] || getStartTileId();
-        mapAttribute
-            (async () => {
-                for (let i = backPath.length - 1; i >= 0; i--) {
-                    await new Promise(r => setTimeout(r, 300));
-                    moveTo(backPath[i]);
-                }
-            })();
+        (async () => {
+            for (let i = backPath.length - 1; i >= 0; i--) {
+                await new Promise(r => setTimeout(r, 300));
+                moveTo(backPath[i]);
+            }
+        })();
     };
 
     const handleRollDice = () => {
@@ -251,7 +259,7 @@ export default function GamePage({ initialPlayers }) {
             const finalTile = tiles.find(t => t.id === nextId);
             const player = players[currentTurn];
             const result = await handleTileEffect(finalTile?.type, player, finalTile?.id, jokerTempMap);
-            if (typeof result === "function") result(nextId, defaultEndTurn);
+            if (typeof result === "function") result(nextId, defaultEndTurn, player);
             else defaultEndTurn();
         }
     };
@@ -283,13 +291,38 @@ export default function GamePage({ initialPlayers }) {
             abilityEndTurnRef.current = null;
         }
     };
-
+    // 최초 한 번: 맵 + 타일 정보 가져오기
     useEffect(() => {
-        const id = getStartTileId();
-        setPlayers(prev => prev.map(p => ({ ...p, position: id, movePath: [id], items: Array.from({ length: 3 }, getRandomItem), abilityGauge: 0 })));
-        setCameraPos({ x: tiles[id].x, y: tiles[id].y });
+        const fetchMapData = async () => {
+            const mapRes = await fetch("/api/maps/0");
+            const tileRes = await fetch("/api/maps/0/tiles");
+
+            const mapData = await mapRes.json();
+            const tileData = await tileRes.json();
+            console.log("🔍 directions 원본", tileData.map(t => t.directions));
+
+            setMap(mapData);
+            setTiles(tileData);
+        };
+        fetchMapData();
     }, []);
 
+    // tiles가 준비된 후에 플레이어 초기화
+    useEffect(() => {
+        if (tiles.length === 0 || initialPlayers.length === 0) return;
+        const id = tiles.find(t => t.type === "START")?.id;
+        if (id == null) return;
+
+        setPlayers(prev => prev.map(p => ({
+            ...p,
+            position: id,
+            movePath: [id],
+            items: Array.from({ length: 3 }, getRandomItem),
+            abilityGauge: 0,
+        })));
+        const tile = tiles.find(t => t.id === id);
+        if (tile) setCameraPos({ x: tile.x, y: tile.y });
+    }, [tiles, initialPlayers]);
     useEffect(() => {
         const tile = tiles.find(t => t.id === players[currentTurn]?.position);
         if (tile) {
@@ -319,18 +352,66 @@ export default function GamePage({ initialPlayers }) {
             },
             moveTo: moveTo,
             getTiles: () => tiles, // ✅ 여기서 tiles 전달
+            startTileShuffle: (id, newType, from) => {
+                setShufflingTileMap(prev => ({ ...prev, [id]: true }));
+
+                setTimeout(() => {
+                    if (from === "question") {
+                        setQuestionTileMap(prev => ({ ...prev, [id]: newType }));
+                    } else if (from === "joker") {
+                        setJokerTempMap(prev => ({ ...prev, [id]: newType }));
+                    }
+
+                    setShufflingTileMap(prev => {
+                        const updated = { ...prev };
+                        delete updated[id];
+                        return updated;
+                    });
+                }, 2000);
+            },
+            endTileShuffle: (id) => {
+                setShufflingTileMap(prev => {
+                    const next = { ...prev };
+                    delete next[id];
+                    return next;
+                });
+            },
+            defaultEndTurn,
         });
     }, [players, currentTurn]);
 
     return (
-        <div className="w-full h-screen bg-gray-600 relative overflow-hidden">
-            <div className="absolute w-full h-full" style={{ transform: `translate(${-cameraPos.x + window.innerWidth / 2}px, ${-cameraPos.y + window.innerHeight / 2}px)`, transition: 'transform 0.8s ease-out' }}>
-                <TileMap tiles={tiles} />
-                {players.map(p => <PlayerPiece key={p.id} tile={tiles.find(t => t.id === p.position)} nickname={p.nickname} />)}
+        <div
+            className="w-full h-screen relative overflow-hidden bg-[url('/resources/bg/gameBackground.png')] bg-repeat"
+            style={{ backgroundSize: "1024px 1024px" }}
+        >
+
+
+            <div
+                className="absolute"
+                style={{
+                    width: map?.width || "1600px",
+                    height: map?.height || "900px",
+                    transform: `translate(${-cameraPos.x + window.innerWidth / 2}px, ${-cameraPos.y + window.innerHeight / 2}px)`,
+                    transition: "transform 0.8s ease-out",
+                }}
+            >
+
+                {/* 타일 및 말 */}
+                <TileMap tiles={tiles}
+                    jokerTempMap={jokerTempMap}
+                    questionTileMap={questionTileMap}
+                    shufflingTileMap={shufflingTileMap} // ← 이 부분 반드시 필요 
+                />
+                {players.map((p) => (
+                    <PlayerPiece key={p.id} tile={tiles.find((t) => t.id === p.position)} nickname={p.nickname} />
+                ))}
             </div>
 
             <DicePanel onRoll={handleRollDice} diceValue={dice} currentPlayer={players[currentTurn]} disabled={isMoving || isWaitingDirection || awaitingTaxRoll || awaitingAbilityRoll || BattleManager._state.get()} />
             <BattleModal onBattleResolved={handleBattleEnd} />
+
+
 
             {awaitingTaxRoll && (
                 <div className="absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
@@ -376,6 +457,8 @@ export default function GamePage({ initialPlayers }) {
                     </div>
                 </div>
             )}
+
+
         </div>
     );
 }
