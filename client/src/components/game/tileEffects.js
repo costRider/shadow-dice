@@ -204,14 +204,27 @@ const effects = {
     },
 
     WARP1: () => async (fromId, endTurnCallback) => {
-        //console.log("타일 타입 확인:", tileType);
-        const tiles = tileEffectHandlers.getTiles(); // ✅ getTiles로 타일 가져오기
-        const group = tiles.filter(t => t.type === "WARP1" && t.id !== fromId);
-        if (group.length > 0) {
-            const target = group[Math.floor(Math.random() * group.length)];
-            console.log("🔀 [WARP1] →", target.id);
-            await tileEffectHandlers.moveTo(target.id);
+        const tiles = tileEffectHandlers.getTiles();
+        const current = tiles.find(t => t.id === fromId);
+        if (!current || typeof current.warp_order !== "number") {
+            console.warn("⚠️ [WARP1] 현재 타일의 warp_order 없음");
+            return endTurnCallback?.();
         }
+
+        const targets = tiles.filter(t =>
+            t.type === "WARP1" &&
+            t.id !== fromId &&
+            t.warp_order === current.warp_order
+        );
+
+        if (targets.length > 0) {
+            const target = targets[Math.floor(Math.random() * targets.length)];
+            console.log("🔁 [WARP1] →", target.id);
+            await tileEffectHandlers.moveTo(target.id);
+        } else {
+            console.warn("🚫 [WARP1] 대상 없음");
+        }
+
         endTurnCallback?.();
     },
 
@@ -219,49 +232,46 @@ const effects = {
         const tiles = tileEffectHandlers.getTiles();
         const current = tiles.find(t => t.id === fromId);
         if (!current || typeof current.warp_order !== "number") {
-            console.warn("⚠️ [WARP2] 현재 타일의 warp order 누락");
+            console.warn("⚠️ [WARP2] 현재 타일의 warp_order 없음");
             return endTurnCallback?.();
         }
-        console.log("타일확인: ", tiles, "현재타일:", current);
-        const targets = tiles.filter(t =>
-            t.type === "WARP2" &&
-            t.id !== fromId &&
-            typeof t.warp_order === "number" &&
-            t.warp_order < current.warp_order
-        );
+
+        const targets = tiles
+            .filter(t => t.type === "WARP2" && t.warp_order < current.warp_order)
+            .sort((a, b) => b.warp_order - a.warp_order); // 높은 것부터 내림차순
 
         if (targets.length > 0) {
-            const target = targets[Math.floor(Math.random() * targets.length)];
-            console.log("🔀 [WARP2] 뒤로 이동 →", target.id);
+            const target = targets[0]; // 가장 가까운 낮은 값
+            console.log("🔽 [WARP2] 뒤로 이동 →", target.id);
             await tileEffectHandlers.moveTo(target.id);
         } else {
-            console.warn("⚠️ [WARP2] 뒤로 이동 가능한 타일 없음");
+            console.warn("🚫 [WARP2] 워프 대상 없음");
         }
+
         endTurnCallback?.();
     },
+
 
     WARP3: () => async (fromId, endTurnCallback) => {
         const tiles = tileEffectHandlers.getTiles();
         const current = tiles.find(t => t.id === fromId);
         if (!current || typeof current.warp_order !== "number") {
-            console.warn("⚠️ [WARP3] 현재 타일의 warp order 누락");
+            console.warn("⚠️ [WARP3] 현재 타일의 warp_order 없음");
             return endTurnCallback?.();
         }
 
-        const targets = tiles.filter(t =>
-            t.type === "WARP3" &&
-            t.id !== fromId &&
-            typeof t.warp_order === "number" &&
-            t.warp_order > current.warp_order
-        );
+        const targets = tiles
+            .filter(t => t.type === "WARP3" && t.warp_order > current.warp_order)
+            .sort((a, b) => a.warp_order - b.warp_order); // 낮은 것부터 오름차순
 
         if (targets.length > 0) {
-            const target = targets[Math.floor(Math.random() * targets.length)];
-            console.log("🔀 [WARP3] 앞으로 이동 →", target.id);
+            const target = targets[0]; // 가장 가까운 높은 값
+            console.log("🔼 [WARP3] 앞으로 이동 →", target.id);
             await tileEffectHandlers.moveTo(target.id);
         } else {
-            console.warn("⚠️ [WARP3] 앞으로 이동 가능한 타일 없음");
+            console.warn("🚫 [WARP3] 워프 대상 없음");
         }
+
         endTurnCallback?.();
     },
 
@@ -330,7 +340,7 @@ function applyRandomTileEffectAfterShuffle({ tileId, player, type = "QUESTION", 
 
 const questionTypes = [
     "NORMAL", "BLESS", "CURSE", "TREASURE", "PLUS3", "PLUS4", "SPADE", "CLOVER", "TAX"
-    , "ABIL25", "ABIL", "BATTLE", "DOA", "PRISON", "DISK", "WAND", "SWORD", "CUP"
+    , "ABIL25", "ABIL", "DOA", "PRISON", "DISK", "WAND", "SWORD", "CUP"
 ];
 
 // 더미 함수 (실제 게임 로직과 연결 시 교체 필요)

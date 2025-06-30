@@ -164,6 +164,34 @@ router.put("/:roomId/update", async (req, res) => {
   }
 });
 
+// GET /rooms/:roomId/game
+router.get("/:roomId/game", authenticate, async (req, res) => {
+  try {
+    const { roomId } = req.params;
+    const userId = req.user.id;
+
+    // ✅ map + tiles 포함된 room 정보로 대체
+    const room = getRoomWithMapInfo(roomId);
+    if (!room) return res.status(404).json({ error: "방을 찾을 수 없습니다." });
+
+    // 게임이 시작되지 않았다면 거부
+    if (room.status !== "IN_PROGRESS") {
+      return res.status(403).json({ error: "게임이 아직 시작되지 않았습니다." });
+    }
+
+    const players = getRoomUserInfo(roomId);
+    const isPlayer = players.some(p => p.id === userId);
+    if (!isPlayer) {
+      return res.status(403).json({ error: "해당 방에 참여하지 않은 사용자입니다." });
+    }
+
+    return res.json({ room, players }); // ✅ room 내부에 map, tiles 포함됨
+  } catch (err) {
+    console.error("게임 정보 요청 실패:", err);
+    res.status(500).json({ error: "서버 오류" });
+  }
+});
+
 
 // 게임 시작 (호스트 전용)
 router.put("/:id/start", (req, res) => {

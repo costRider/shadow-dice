@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSocket } from "./useSocket";
 import { useRoom } from "@/context/RoomContext";
 
@@ -10,6 +10,7 @@ export default function useGameLobbyUsers(roomId, userId) {
         setCharacterList,
         loadPlayers,
     } = useRoom();
+    const [gameStarted, setGameStarted] = useState(false);
 
     // “한 번만 join-room emit”을 보장하기 위한 ref
     const joinedRef = useRef(false);
@@ -24,6 +25,14 @@ export default function useGameLobbyUsers(roomId, userId) {
         if (roomId === null) return;
         socket.emit("player-ready-status-changed", { roomId });
     };
+
+    useEffect(() => {
+        socket.on("game-start", () => {
+            console.log("🟢 서버에서 game-start 수신");
+            setGameStarted(true); // navigate 대신 플래그만 설정
+        });
+        return () => socket.off("game-start");
+    }, []);
 
     useEffect(() => {
         if (!socket || !roomId) return;
@@ -52,7 +61,7 @@ export default function useGameLobbyUsers(roomId, userId) {
         socket.on("room-updated", handleRoomUpdated);
 
         return () => {
-            if (roomId) {
+            if (joinedRef.current) {
                 socket.emit("leave-room", roomId);
                 joinedRef.current = false;
             }
@@ -64,6 +73,6 @@ export default function useGameLobbyUsers(roomId, userId) {
     }, [socket, roomId]);
 
     return {
-        handleChangeTeam, handleGameStart,
+        handleChangeTeam, handleGameStart, gameStarted
     };
 }

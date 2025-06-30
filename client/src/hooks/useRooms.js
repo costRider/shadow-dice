@@ -22,21 +22,7 @@ export default function useRooms() {
             setLoading(false);
         }
     }, []);
-    /*
-        useEffect(() => {
-            // 1) 최초 방 목록 로드
-            fetchAll();
-    
-            // 2) 소켓으로부터 방 목록 변경 이벤트 받기
-            socket.on("room-list-changed", newList => {
-                setRooms(newList);
-            });
-    
-            return () => {
-                socket.off("room-list-changed");
-            };
-        }, [fetchAll, socket]);
-    */
+
     useEffect(() => {
         fetchAll();
     }, [fetchAll]);

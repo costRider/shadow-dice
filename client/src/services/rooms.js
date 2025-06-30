@@ -1,6 +1,13 @@
 // client/src/services/room.js
 import apiClient from './apiClient';
 
+
+export async function fetchMapList() {
+  const { ok, data } = await apiClient.get("maps");
+  if (!ok) throw new Error(data.message || "맵 목록 불러오기 실패");
+  return data;
+}
+
 /**
  * 전체 방 목록 조회
  * @returns {Promise<Room[]>}

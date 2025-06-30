@@ -2,6 +2,7 @@
 import React, { useState, useContext } from "react";
 import useRooms from "@/hooks/useRooms";
 import { UserContext } from "@/context/UserContext";
+import { useRoom } from "@/context/RoomContext";
 import { toast } from "@/context/ToastContext";
 import { ArrowLeft, ArrowRight } from "lucide-react"; // Lucide 아이콘을 사용했다고 가정
 
@@ -10,15 +11,14 @@ const COST_OPTIONS = [null, 100, 120, 140, 160, 180];
 const CreateRoomPopup = ({ onClose, onCreate }) => {
   const { user } = useContext(UserContext);
   const { createRoom } = useRooms();
-
+  const { mapList } = useRoom();
   const [roomName, setRoomName] = useState("");
   const [maxPlayers, setMaxPlayers] = useState(4);
-  const [selectedMap, setSelectedMap] = useState("기본맵");
   const [isPrivate, setIsPrivate] = useState(false);
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [teamMode, setTeamMode] = useState(false);
-
+  const [selectedMapId, setSelectedMapId] = useState(mapList?.[0]?.id || 11);
   // costLimit 값은 COST_OPTIONS의 인덱스로 관리
   const [costIndex, setCostIndex] = useState(0); // 처음은 null (무제한)
 
@@ -49,7 +49,7 @@ const CreateRoomPopup = ({ onClose, onCreate }) => {
     setLoading(true);
     const newRoom = {
       title: roomName,
-      map: selectedMap,
+      map: selectedMapId,
       maxPlayers,
       isPrivate,
       password: isPrivate ? password : "",
@@ -114,6 +114,7 @@ const CreateRoomPopup = ({ onClose, onCreate }) => {
 
         {/* 맵 선택 */}
         <div className="mb-4">
+          {/*
           <label className="block mb-1 text-sm text-blue-200">맵 선택</label>
           <button
             onClick={() =>
@@ -123,6 +124,24 @@ const CreateRoomPopup = ({ onClose, onCreate }) => {
           >
             선택된 맵: {selectedMap}
           </button>
+        </div>
+          */}
+          <label className="block mb-1 text-sm text-blue-200 ">🗺 맵 선택</label>
+          <select
+            value={selectedMapId}
+            onChange={(e) => setSelectedMapId(Number(e.target.value))}
+            className="w-full px-3 py-2 bg-[rgba(255,255,255,0.1)] border border-blue-400 rounded text-white hover:bg-[rgba(255,255,255,0.2)] transition focus:outline-none"
+          >
+            {mapList.map((map) => (
+              <option
+                key={map.id}
+                value={map.id}
+                className="bg-[rgba(20,20,60,1)] text-white"
+              >
+                {map.name}
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* 공개/비공개 */}

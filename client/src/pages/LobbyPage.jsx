@@ -11,6 +11,7 @@ import ShopModal from '@/components/lobby/ShopModal';
 import UserProfileModal from "@/components/lobby/UserProfileModal";
 import AvatarRoomModal from "@/components/lobby/AvatarRoomModal";
 import { toast } from "@/context/ToastContext";
+import { useRoom } from "@/context/RoomContext"
 
 const LobbyPage = () => {
     const [profileId, setProfileId] = useState(null);
@@ -23,10 +24,17 @@ const LobbyPage = () => {
     const [showAvatarRoom, setShowAvatarRoom] = useState(false);
     const { logout, user } = useAuth();
     const { rooms } = useRooms();
+    const { loadMaps } = useRoom();
     const { join } = useGameLobby();
     /*const { loading: lobbyLoading } = useLobbyUsers();
     const { lobbyUsers } = useContext(UserContext);*/
     const { loading: lobbyLoading, lobbyUsers } = useLobbyUsers();
+    const { mapList } = useRoom();
+    const mapInfo = mapList.find(m => m.id === selectedRoom?.map);
+
+    useEffect(() => {
+        loadMaps(); // 맵 목록 로딩
+    }, []);
 
     useEffect(() => {
         if (selectedRoom && !rooms.find((r) => r.id === selectedRoom.id)) {
@@ -128,8 +136,18 @@ const LobbyPage = () => {
                             <p>
                                 <strong>옵션:</strong>{selectedRoom.teamMode ? "팀전" : "싱글"} / 💰Cost 제한: {selectedRoom.costLimit === null ? "무제한" : `${selectedRoom.costLimit} 이하`}
                                 {selectedRoom.isPrivate ? "🔒 비공개" : "🌐 공개"} |{" "}
-                                {selectedRoom.map}
                             </p>
+                            <div>
+                                <p><strong>맵:</strong> {mapInfo?.name ?? `설명: ${selectedRoom.description}`}</p>
+                                {mapInfo?.image_path && (
+                                    <img
+                                        src={`/${mapInfo.image_path.replace(/^\/?/, "")}`}
+                                        alt={mapInfo.name}
+                                        className="mt-2 rounded border border-blue-500 shadow-md"
+                                        style={{ width: "100%", maxHeight: "160px", objectFit: "cover" }}
+                                    />
+                                )}
+                            </div>
                         </div>
                     ) : (
                         <p className="text-gray-400">방을 선택하면 정보가 표시됩니다.</p>
@@ -149,8 +167,8 @@ const LobbyPage = () => {
 
                     <button
                         className={`px-6 py-3 rounded-lg text-white ${selectedRoom
-                                ? "bg-gradient-to-b from-blue-500 to-blue-700 hover:scale-105"
-                                : "bg-gray-400 cursor-not-allowed"
+                            ? "bg-gradient-to-b from-blue-500 to-blue-700 hover:scale-105"
+                            : "bg-gray-400 cursor-not-allowed"
                             } transition shadow-md`}
                         disabled={!selectedRoom}
                         onClick={() => selectedRoom && handleRoomEnter(selectedRoom)}

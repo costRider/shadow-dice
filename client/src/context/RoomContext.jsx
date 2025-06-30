@@ -1,6 +1,6 @@
 import { createContext, useContext, useState } from "react";
-import { fetchRoomPlayers } from "@/services";
-
+import { fetchRoomPlayers } from "@/services/rooms";
+import { fetchMapList } from "@/services/rooms";
 
 const RoomContext = createContext();
 
@@ -10,6 +10,13 @@ export function RoomProvider({ children }) {
     const [characterList, setCharacterList] = useState([]); // 보유한 캐릭터 목록
     const [myCharacters, setMyCharacters] = useState([]); // 선택한 캐릭터
     const [ready, setReady] = useState(false); // 준비 상태
+    const [mapList, setMapList] = useState([]);
+
+    const loadMaps = async () => {
+        const data = await fetchMapList();
+        console.log("맵 목록:", data);
+        setMapList(data);
+    };
 
     const loadPlayers = async (roomId) => {
         const data = await fetchRoomPlayers(roomId);
@@ -29,6 +36,8 @@ export function RoomProvider({ children }) {
         ready,
         setReady,
         loadPlayers,
+        mapList,
+        loadMaps,
     };
 
     return <RoomContext.Provider value={value}>{children}</RoomContext.Provider>;

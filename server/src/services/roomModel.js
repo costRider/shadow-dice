@@ -1,5 +1,6 @@
 import db from "../config/db.js";
 import { v4 as uuid } from "uuid";
+import { getMapById, getTilesByMapId } from "./mapServices.js";
 
 // 방 생성
 export function createRoom({
@@ -114,6 +115,22 @@ export function getRoomById(roomId) {
       isReady: !!p.isReady,
       selectedCharacters: p.selectedCharacters,
     })),
+  };
+}
+
+export function getRoomWithMapInfo(roomId) {
+  const room = getRoomById(roomId);
+  if (!room) return null;
+
+  const map = getMapById(room.map);
+  const tiles = getTilesByMapId(room.map);
+
+  return {
+    ...room,
+    mapInfo: {
+      ...map,
+      tiles,
+    },
   };
 }
 

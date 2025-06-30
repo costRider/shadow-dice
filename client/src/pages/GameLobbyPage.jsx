@@ -24,11 +24,12 @@ const GameLobbyPage = () => {
     const navigate = useNavigate();
     const [showEditModal, setShowEditModal] = useState(false);
 
-    const { gameroom, players, setRoom, characterList, loadPlayers } = useRoom();
+    const { gameroom, players, setRoom, characterList, loadPlayers, mapList } = useRoom();
 
     const roomId = gameroom?.id;
     const costLimit = gameroom?.costLimit;
     const userId = user?.id;
+    const mapInfo = mapList.find((m) => m.id === gameroom?.map);
     //const room = location.state?.room;
 
     useEffect(() => {
@@ -43,7 +44,7 @@ const GameLobbyPage = () => {
         if (roomId) loadPlayers(roomId);
     }, [roomId]);
 
-    const { handleChangeTeam, handleGameStart } = useGameLobbyUsers(roomId, userId);
+    const { handleChangeTeam, handleGameStart, gameStarted } = useGameLobbyUsers(roomId, userId);
 
     // 4) “옵션 변경” 버튼을 누른 뒤, 서버가 room-updated를 emit하면
     //    이 useEffect에서 “방 옵션이 바뀌었다”고 판단해 로컬 캐릭터/준비 상태를 초기화합니다.
@@ -57,6 +58,11 @@ const GameLobbyPage = () => {
     }, [gameroom?.teamMode, gameroom?.costLimit]);
 
     const isHost = gameroom?.hostId === userId;
+
+    useEffect(() => {
+        if (!gameroom || !gameStarted) return;
+        navigate("/game", { state: { room: gameroom } });
+    }, [gameStarted, gameroom]);
 
     // 4) 옵션 변경 저장 핸들러
     const handleSaveOptions = async ({ mode: newTeamMode, costLimit: newCost }) => {
@@ -120,9 +126,8 @@ const GameLobbyPage = () => {
             isReady: next,
         });
         setIsReady(next);
-
         if (next) {
-            handleGameStart(roomId);
+            handleGameStart(roomId); // 이 함수가 socket.emit(...) 호출해야 함
         }
     };
 
@@ -231,7 +236,11 @@ const GameLobbyPage = () => {
                             <div className="space-y-1">
                                 <h3 className="font-semibold text-yellow-300 mb-2">📋 방 정보</h3>
                                 <p>방 이름: {gameroom?.title}</p>
-                                <p>맵: {gameroom?.map}</p>
+                                <p>
+                                    맵: {mapInfo?.name || `ID: ${gameroom?.map}`}
+                                    <br />
+                                    <span className="text-xs text-blue-300">{mapInfo?.description}</span>
+                                </p>
                                 <p>인원: {gameroom?.maxPlayers}명</p>
                                 <p>형태: {gameroom?.isPrivate ? "🔒 비공개" : "🌐 공개"}</p>
                             </div>
@@ -327,7 +336,6 @@ const GameLobbyPage = () => {
                     <FixedChatBox chatType="room" roomId={roomId} className="h-full" />
                 </div>
 
-                {/* ⚡ 여기를 수정했습니다 */}
                 <div className="w-[20%] p-4 overflow-y-auto bg-[rgba(10,10,40,0.6)]">
                     <h4 className="font-semibold text-yellow-300 mb-2">현재 접속자</h4>
                     <ul className="space-y-1">

@@ -41,10 +41,9 @@ export default function GamePage({ initialPlayers }) {
     const [doaTarget, setDoaTarget] = useState(null);
     const doaEndTurnRef = useRef(null);
     const [mapAttribute, setMapAttribute] = useState("NONE");
+    const [currentPlayerTurnVisible, setCurrentPlayerTurnVisible] = useState(false);
 
     const getStartTileId = () => tiles.find(t => t.type === "START")?.id || 0;
-
-
 
     const defaultEndTurn = useCallback(() => {
         setIsMoving(false);
@@ -57,6 +56,10 @@ export default function GamePage({ initialPlayers }) {
                 console.log("🎯 [턴 전환] 다음 플레이어:", nextPlayer.nickname);
                 console.log("📸 [카메라 이동] 좌표:", nextTile.x, nextTile.y);
             }
+            // 👇 중앙 메시지 표시
+            setCurrentPlayerTurnVisible(true);
+            setTimeout(() => setCurrentPlayerTurnVisible(false), 2000);
+
             return next;
         });
     }, [players]);
@@ -294,8 +297,8 @@ export default function GamePage({ initialPlayers }) {
     // 최초 한 번: 맵 + 타일 정보 가져오기
     useEffect(() => {
         const fetchMapData = async () => {
-            const mapRes = await fetch("/api/maps/0");
-            const tileRes = await fetch("/api/maps/0/tiles");
+            const mapRes = await fetch("/api/maps/11");
+            const tileRes = await fetch("/api/maps/11/tiles");
 
             const mapData = await mapRes.json();
             const tileData = await tileRes.json();
@@ -381,12 +384,19 @@ export default function GamePage({ initialPlayers }) {
     }, [players, currentTurn]);
 
     return (
+
         <div
             className="w-full h-screen relative overflow-hidden bg-[url('/resources/bg/gameBackground.png')] bg-repeat"
             style={{ backgroundSize: "1024px 1024px" }}
         >
 
-
+            {currentPlayerTurnVisible && (
+                <div className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none">
+                    <div className="bg-[rgba(0,0,0,0.7)] px-8 py-4 rounded shadow-lg text-white text-2xl font-bold animate-fade-in-out">
+                        🎮 {players[currentTurn]?.nickname} 님의 턴입니다!
+                    </div>
+                </div>
+            )}
             <div
                 className="absolute"
                 style={{

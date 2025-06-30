@@ -1,5 +1,6 @@
 import { getRoomUserInfo, getRoomById, getAllRooms, leaveRoom, getUserCharacterList, setPlayerTeam } from '../../services/roomModel.js';
 import { updateUserStatusWithSocket } from '../../services/userModel.js';
+import { updateRoomStatus } from '../../services/roomModel.js';
 import { roomEvents } from "../../events.js";
 
 function handleGameLobby(io, socket) {
@@ -93,7 +94,7 @@ function handleGameLobby(io, socket) {
             }
 
             // DB 업데이트
-            setPlayerTeam(roomId, userId, team);
+            await setPlayerTeam(roomId, userId, team);
 
             // 사용자 목록 다시 가져오기
             const users = await getRoomUserInfo(roomId);
@@ -189,9 +190,15 @@ function handleGameLobby(io, socket) {
 
                 // ✅ 사용자 변동 감지
                 const originalUserIds = startPlayersMap.get(roomId) || [];
+                /*
                 const isSame = (
                     originalUserIds.length === currentUserIds.length &&
                     originalUserIds.every(id => currentUserIds.includes(id))
+                );
+                */
+                const isSame = (
+                    originalUserIds.length === currentUserIds.length &&
+                    originalUserIds.slice().sort((a, b) => a - b).join() === currentUserIds.slice().sort((a, b) => a - b).join()
                 );
 
                 if (!isSame) {
@@ -212,6 +219,7 @@ function handleGameLobby(io, socket) {
                     clearInterval(intervalId);
                     startCountdownMap.delete(roomId);
                     startPlayersMap.delete(roomId);
+                    await updateRoomStatus(roomId, "IN_PROGRESS");
                     io.to(roomId).emit("game-start");
                     return;
                 }
