@@ -181,8 +181,8 @@ export default function SignupAvatarModal({ onClose }) {
             key={exp.key}
             onClick={() => handleExpressionSelect(exp.key)}
             className={`px-2 py-1 rounded-full text-sm ${expression === exp.key
-                ? "bg-blue-400 text-white"
-                : "bg-gray-200"
+              ? "bg-blue-400 text-white"
+              : "bg-gray-200"
               }`}
           >
             {exp.label}

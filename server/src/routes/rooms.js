@@ -4,10 +4,12 @@ import {
   getAllRooms,
   getRoomById,
   updateRoomStatus,
+  getRoomWithMapInfo,
   updateRoomInfo,
   addPlayerToRoom,
   leaveRoom,
   getRoomUserInfo,
+  getRoomUserInfoWithTurnOrder,
   setPlayerReady,
 } from "../services/roomModel.js";
 import { updateUserStatus } from '../services/userModel.js';
@@ -23,22 +25,6 @@ router.get("/list", (req, res) => {
   res.json({ rooms });
 });
 
-// 방 생성
-/*
-router.post("/create", (req, res) => {
-
-  const { title, map, maxPlayers, isPrivate, password, hostId } = req.body;
-  const room = createRoom({
-    title,
-    map,
-    maxPlayers,
-    isPrivate,
-    password,
-    hostId,
-  });
-  res.json({ room });
-});
-*/
 // 방 생성 
 router.post(
   "/create",
@@ -167,6 +153,7 @@ router.put("/:roomId/update", async (req, res) => {
 // GET /rooms/:roomId/game
 router.get("/:roomId/game", authenticate, async (req, res) => {
   try {
+    console.log("게임 시작 Call");
     const { roomId } = req.params;
     const userId = req.user.id;
 
@@ -179,24 +166,23 @@ router.get("/:roomId/game", authenticate, async (req, res) => {
       return res.status(403).json({ error: "게임이 아직 시작되지 않았습니다." });
     }
 
-    const players = getRoomUserInfo(roomId);
-    const isPlayer = players.some(p => p.id === userId);
-    if (!isPlayer) {
-      return res.status(403).json({ error: "해당 방에 참여하지 않은 사용자입니다." });
-    }
+    const orderedPlayers = getRoomUserInfoWithTurnOrder(roomId);
 
-    return res.json({ room, players }); // ✅ room 내부에 map, tiles 포함됨
+    console.log("현재 players 목록:", orderedPlayers);
+
+    const currentTurnPlayerId = orderedPlayers[0]?.id;
+
+    return res.json({
+      room: {
+        ...room,
+        currentTurnPlayerId, // ✅ 클라이언트는 이 값을 기준으로 턴 판단
+      },
+      players: orderedPlayers,
+    });
   } catch (err) {
     console.error("게임 정보 요청 실패:", err);
     res.status(500).json({ error: "서버 오류" });
   }
-});
-
-
-// 게임 시작 (호스트 전용)
-router.put("/:id/start", (req, res) => {
-  updateRoomStatus(req.params.id, "IN_PROGRESS");
-  res.json({ success: true });
 });
 
 export default router;

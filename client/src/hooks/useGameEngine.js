@@ -9,7 +9,7 @@ export default function useGameEngine(room) {
     const [tiles, setTiles] = useState([]);
     const [map, setMap] = useState(null);
     const [players, setPlayers] = useState(room?.players || []);
-    const [currentTurn, setCurrentTurn] = useState(0);
+    //const [currentTurn, setCurrentTurn] = useState(0);
     const [cameraPos, setCameraPos] = useState({ x: 0, y: 0 });
     const [dice, setDice] = useState(null);
     const [isMoving, setIsMoving] = useState(false);
@@ -29,7 +29,7 @@ export default function useGameEngine(room) {
     const [pendingAbilityPlayerId, setPendingAbilityPlayerId] = useState(null);
     const [abilityRolls, setAbilityRolls] = useState([]);
     const [doaTarget, setDoaTarget] = useState(null);
-
+    const [currentTurnPlayerId, setCurrentTurnPlayerId] = useState(null);
     const taxEndTurnRef = useRef(null);
     const abilityEndTurnRef = useRef(null);
     const doaEndTurnRef = useRef(null);
@@ -43,7 +43,16 @@ export default function useGameEngine(room) {
 
         fetchGameRoomData(room.id)
             .then(({ room: fullRoom, players: loadedPlayers }) => {
-                setPlayers(loadedPlayers);
+                // ✅ selectedCharacters 등 필요한 필드를 파싱
+                const parsedPlayers = loadedPlayers.map(p => ({
+                    ...p,
+                    selectedCharacters: typeof p.selectedCharacters === "string"
+                        ? JSON.parse(p.selectedCharacters)
+                        : p.selectedCharacters
+                }));
+
+                setPlayers(parsedPlayers); // 안정 정렬
+                setCurrentTurnPlayerId(fullRoom.currentTurnPlayerId);
                 const mapData = fullRoom.mapInfo;
                 setMap(mapData);
                 setTiles(mapData?.tiles || []);
@@ -56,31 +65,48 @@ export default function useGameEngine(room) {
             });
     }, [room?.id]);
 
-
+    /*
+        const defaultEndTurn = useCallback(() => {
+            setIsMoving(false);
+    
+            setCurrentTurn(prev => {
+                const next = (prev + 1) % players.length;
+                const nextTile = tiles.find(t => t.id === players[next].position);
+                if (nextTile) setCameraPos({ x: nextTile.x, y: nextTile.y });
+                return next;
+            });
+    
+        }, [players, tiles]);
+    */
     const defaultEndTurn = useCallback(() => {
         setIsMoving(false);
-        setCurrentTurn(prev => {
-            const next = (prev + 1) % players.length;
-            const nextTile = tiles.find(t => t.id === players[next].position);
+        setCurrentTurnPlayerId(prev => {
+            const currentIdx = players.findIndex(p => p.id === prev);
+            const nextPlayer = players[(currentIdx + 1) % players.length];
+            const nextTile = tiles.find(t => t.id === nextPlayer?.position);
             if (nextTile) setCameraPos({ x: nextTile.x, y: nextTile.y });
-            return next;
+            return nextPlayer?.id;
         });
     }, [players, tiles]);
+
+
 
     const moveTo = async (id) => {
         const tile = tiles.find(t => t.id === id);
         if (!tile) return;
         setPlayers(prev => {
             const updated = [...prev];
-            updated[currentTurn] = {
-                ...updated[currentTurn],
+            const index = updated.findIndex(p => p.id === currentTurnPlayerId);
+            if (index === -1) return prev; // 예외 처리
+
+            updated[index] = {
+                ...updated[index],
                 position: id,
-                gp: (updated[currentTurn].gp || 0) + 1,
-                movePath: [...(updated[currentTurn].movePath || []), id]
+                gp: (updated[index].gp || 0) + 1,
+                movePath: [...(updated[index].movePath || []), id]
             };
             return updated;
         });
-        setCameraPos({ x: tile.x, y: tile.y });
     };
 
     const handleMoveStep = async (steps, currentId, endTurnCallback = defaultEndTurn) => {
@@ -99,7 +125,7 @@ export default function useGameEngine(room) {
         await moveTo(nextId);
         const nextStep = steps - 1;
 
-        const player = players[currentTurn];
+        const player = players.find(p => p.id === currentTurnPlayerId);
         const nextTile = tiles.find(t => t.id === nextId);
         if (gameEnded) return;
 
@@ -107,7 +133,9 @@ export default function useGameEngine(room) {
         if (nextTile?.type === "BATTLE") {
             const defender = players.find(p => p.id !== player.id && p.position === nextId);
             if (defender) {
-                savedTurnRef.current = currentTurn;
+                savedTurnRef.current = currentTurnPlayerId;
+                // 전투 후
+                setCurrentTurnPlayerId(savedTurnRef.current);
                 await BattleManager.startBattle({
                     attacker: player,
                     defender,
@@ -128,7 +156,7 @@ export default function useGameEngine(room) {
     };
 
     const handleRollDice = () => {
-        const player = players[currentTurn];
+        const player = players.find(p => p.id === currentTurnPlayerId);
         if (prisonTurnMap[player.id] > 0) {
             const roll1 = Math.floor(Math.random() * 6) + 1;
             const roll2 = Math.floor(Math.random() * 6) + 1;
@@ -157,7 +185,7 @@ export default function useGameEngine(room) {
     };
 
     const handleChooseDirection = async (dir) => {
-        const tile = tiles.find(t => t.id === players[currentTurn].position);
+        const tile = tiles.find(t => t.id === players.find(p => p.id === currentTurnPlayerId).position);
         const nextId = tile.directions[dir];
         setIsWaitingDirection(false);
         setAvailableDirections(null);
@@ -167,7 +195,7 @@ export default function useGameEngine(room) {
         setRemainingSteps(nextStep);
         if (nextStep > 0) setTimeout(() => handleMoveStep(nextStep, nextId), 400);
         else {
-            const player = players[currentTurn];
+            const player = players.find(p => p.id === currentTurnPlayerId);
             const result = await handleTileEffect(tiles.find(t => t.id === nextId).type, player, nextId, jokerTempMap);
             if (typeof result === "function") result(nextId, defaultEndTurn, player);
             else defaultEndTurn();
@@ -205,7 +233,7 @@ export default function useGameEngine(room) {
         const rolled = Math.floor(Math.random() * 6) + 1;
         const diff = Math.abs(doaTarget - rolled);
         if (diff === 0) doaEndTurnRef.current?.();
-        else if (diff <= 2) handleMoveStep(diff * -2, players[currentTurn].position, doaEndTurnRef.current);
+        else if (diff <= 2) handleMoveStep(diff * -2, players.find(p => p.id === currentTurnPlayerId).position, doaEndTurnRef.current);
         else moveTo(getStartTileId()).then(() => doaEndTurnRef.current?.());
         setAwaitingDOARoll(false);
         setDoaTarget(null);
@@ -251,12 +279,12 @@ export default function useGameEngine(room) {
             endTileShuffle: (id) => setShufflingTileMap(prev => { const u = { ...prev }; delete u[id]; return u; }),
             defaultEndTurn,
         });
-    }, [players, currentTurn]);
+    }, [players, currentTurnPlayerId]);
 
     return {
-        tiles, map, players, currentTurn, cameraPos, dice, isMoving,
+        tiles, map, players, cameraPos, dice, isMoving,
         isWaitingDirection, availableDirections, mapAttribute,
-        handleRollDice, handleChooseDirection,
+        handleRollDice, handleChooseDirection, currentTurnPlayerId,
         awaitingTaxRoll, handleTaxRoll,
         awaitingAbilityRoll, handleAbilityDiceRoll,
         awaitingDOARoll, handleDOADiceRoll,

@@ -4,13 +4,14 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useAvatar } from "@/context/AvatarContext";
 import GameBoard from "@/components/game/GameBoard";
 import useGameEngine from "@/hooks/useGameEngine";
+import useAuth from "@/hooks/useAuth";
 
 const GamePage = () => {
+    const { user } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
     const initialRoom = location.state?.room;
     const [room, setRoom] = useState(initialRoom);
-    const [roomplayers, setRoomplayers] = useState(initialRoom?.players || []);
     const [showTurnBanner, setShowTurnBanner] = useState(true);
 
     const {
@@ -18,7 +19,7 @@ const GamePage = () => {
         map,
         players,
         cameraPos,
-        currentTurn,
+        currentTurnPlayerId,
         dice,
         isMoving,
         isWaitingDirection,
@@ -57,7 +58,7 @@ const GamePage = () => {
 
     useEffect(() => {
         setShowTurnBanner(true);
-    }, [currentTurn]);
+    }, [currentTurnPlayerId]);
 
     if (!initialRoom) {
         navigate("/lobby");
@@ -70,56 +71,85 @@ const GamePage = () => {
         loadAvatars,
         getBodyLayer,
         getExpressionLayer,
+        toAvatarUrl,
     } = useAvatar();
 
     useEffect(() => {
-        roomplayers.forEach((p) => loadAvatars(p.avatar_gender));
-    }, [roomplayers, loadAvatars]);
+        players.forEach((p) => loadAvatars(p.avatar_gender));
+    }, [players, loadAvatars]);
 
-    const half = Math.ceil(roomplayers.length / 2);
-    const leftTeam = roomplayers.slice(0, half);
-    const rightTeam = roomplayers.slice(half);
+    const half = Math.ceil(players.length / 2);
+    const leftTeam = players.slice(0, half);
+    const rightTeam = players.slice(half);
 
-    const makeLayers = (p) => {
-        const meta = (avatarsByGender[p.avatar_gender] || []).find(a => a.code === p.avatar_code) || {};
-        const bodyLayer = getBodyLayer(meta);
-        const defaultItems = meta.defaultItems || [];
-        const expLayer = getExpressionLayer(p.avatar_code, "default", 1, p.avatar_gender);
-        const raw = [bodyLayer, ...defaultItems, expLayer];
-        const unique = Array.from(
-            raw.reduce((m, l) => m.has(l.part_code) ? m : m.set(l.part_code, l), new Map()).values()
-        );
-        return unique.sort((a, b) => (partDepth[a.part_code] || 0) - (partDepth[b.part_code] || 0));
-    };
+    const currentPlayer = players.find(p => p.id === currentTurnPlayerId);
+    const isMyTurn = currentPlayer?.id === user?.id;
 
-    const CharacterCard = ({ player }) => {
-        const layers = makeLayers(player);
+    const GameAvatar = ({ player, reverse = false }) => {
+        const gender = player.avatar_gender;
+        const baseMeta = (avatarsByGender[gender] || []).find(a => a.code === player.avatar_code) || {};
+        const equipped = player.equippedItems || [];
+        const layers = [];
+
+        if (baseMeta.image_path) {
+            layers.push({
+                part_code: "BODY",
+                url: toAvatarUrl(baseMeta.image_path),
+                depth: partDepth["BODY"] || 0,
+            });
+        }
+
+        Object.keys(partDepth).forEach(partCode => {
+            if (partCode === "BODY" || partCode === "EXP") return;
+            const equippedItem = equipped.find(e => e.part_code === partCode);
+            const defItem = (baseMeta.defaultItems || []).find(d => d.part_code === partCode);
+            const image_path = equippedItem?.image_path || defItem?.image_path;
+            if (image_path) {
+                layers.push({
+                    part_code: partCode,
+                    url: toAvatarUrl(image_path),
+                    depth: partDepth[partCode],
+                });
+            }
+        });
+
+        const expUrl = getExpressionLayer(player.avatar_code, player.expression || "default", player.exp_number || 1, gender);
+        if (expUrl) {
+            layers.push({
+                part_code: "EXP",
+                url: expUrl,
+                depth: Math.max(...Object.values(partDepth)) + 1,
+            });
+        }
+
         return (
-            <div className="flex flex-col items-center mb-4">
-                <div className="relative w-24 h-32 bg-gray-800 rounded overflow-hidden">
+            <div className="flex flex-col items-center">
+                <div className="relative w-20 h-28">
                     {layers.map(layer => (
                         <img
-                            key={layer.id}
-                            src={`/resources/avatar/${layer.image_path.replace(/\\/g, "/")}`}
+                            key={layer.part_code}
+                            src={layer.url}
                             alt={layer.part_code}
-                            className="absolute inset-0 w-full h-full object-contain"
-                            style={{ zIndex: partDepth[layer.part_code] || 0 }}
+                            className={`absolute inset-0 w-full h-full object-contain ${reverse ? "scale-x-[-1]" : ""}`}
+                            style={{ zIndex: layer.depth }}
                             draggable={false}
                         />
                     ))}
                 </div>
-                <div className="mt-2 text-white text-sm">{player.nickname}</div>
+                <div className="mt-1 text-white text-xs text-center">{player.nickname}</div>
             </div>
         );
+
     };
+
 
     return (
         <div className="flex flex-col h-screen w-screen bg-[rgba(0,0,40,0.8)]">
             <div className="flex" style={{ height: "75%" }}>
                 <div className="w-[15%] border-r border-blue-600 bg-[rgba(10,10,40,0.6)] p-2 overflow-auto">
-                    <h4 className="font-bold text-center text-yellow-300 mb-2">👥 좌측 팀</h4>
-                    {leftTeam.map(p => (
-                        <CharacterCard key={p.id} player={p} />
+                    <h4 className="font-bold text-center text-yellow-300 mb-2">👥 좌파</h4>
+                    {leftTeam.map((p) => (
+                        <GameAvatar key={p.id} player={p} reverse />
                     ))}
                 </div>
                 <div className="w-[70%] flex flex-col border-x border-blue-600 bg-[rgba(10,10,40,0.6)]">
@@ -128,7 +158,7 @@ const GamePage = () => {
                             🗺️ {map?.name || "로딩 중..."}
                         </div>
                         <div className="text-yellow-300 text-md font-bold">
-                            🎯 현재 턴: {players[currentTurn]?.nickname || "대기 중"}
+                            🎯 현재 턴: {players.find(p => p.id === currentTurnPlayerId)?.nickname || "대기 중"}
                         </div>
                         <div className="text-green-300 text-md font-bold">
                             🧩 현재 속성: {mapAttribute || "NONE"}
@@ -150,11 +180,12 @@ const GamePage = () => {
                     </div>
 
                     <GameBoard
-                        tiles={tiles}
                         players={players}
+                        tiles={tiles}
                         map={map}
                         cameraPos={cameraPos}
-                        currentPlayer={players[currentTurn]}
+                        currentPlayer={currentPlayer}
+                        isMyTurn={isMyTurn}
                         dice={dice}
                         isMoving={isMoving}
                         isWaitingDirection={isWaitingDirection}
@@ -176,9 +207,9 @@ const GamePage = () => {
                     />
                 </div>
                 <div className="w-[15%] border-l border-blue-600 bg-[rgba(10,10,40,0.6)] p-2 overflow-auto">
-                    <h4 className="font-bold text-center text-yellow-300 mb-2">👥 우측 팀</h4>
-                    {rightTeam.map(p => (
-                        <CharacterCard key={p.id} player={p} />
+                    <h4 className="font-bold text-center text-yellow-300 mb-2">👥 우파</h4>
+                    {rightTeam.map((p) => (
+                        <GameAvatar key={p.id} player={p} />
                     ))}
                 </div>
             </div>

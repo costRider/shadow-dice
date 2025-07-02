@@ -1,6 +1,6 @@
 import { getRoomUserInfo, getRoomById, getAllRooms, leaveRoom, getUserCharacterList, setPlayerTeam } from '../../services/roomModel.js';
 import { updateUserStatusWithSocket } from '../../services/userModel.js';
-import { updateRoomStatus } from '../../services/roomModel.js';
+import { updateRoomStatus, assignTurnOrder } from '../../services/roomModel.js';
 import { roomEvents } from "../../events.js";
 
 function handleGameLobby(io, socket) {
@@ -126,9 +126,12 @@ function handleGameLobby(io, socket) {
     socket.on("player-ready-status-changed", async ({ roomId }) => {
         const players = await getRoomUserInfo(roomId);
         const room = await getRoomById(roomId);
-        const allReady = players.every((p) => p.isReady);
 
-        // 1. 최소 인원 체크
+        const allReady = players.every(p => p.isReady);
+        console.log(`[READY] ${roomId} ▶ 모든 준비 상태: ${allReady}`);
+        console.log(`[READY] 플레이어 상태:`, players.map(p => ({ id: p.id, isReady: p.isReady })));
+
+        // ✅ 1. 최소 인원 체크
         if (players.length < 2) {
             io.to(roomId).emit("chat:room:message", {
                 roomId,
@@ -140,7 +143,7 @@ function handleGameLobby(io, socket) {
             return;
         }
 
-        // 3. 팀전일 경우 팀 밸런스 체크
+        // ✅ 2. 팀 밸런스 체크
         if (room.teamMode) {
             const red = players.filter(p => p.team === 'red').length;
             const blue = players.filter(p => p.team === 'blue').length;
@@ -156,7 +159,7 @@ function handleGameLobby(io, socket) {
             }
         }
 
-        // 캐릭터가 선택되지 않은 유저 체크
+        // ✅ 3. 캐릭터 선택 여부
         const hasEmptyChar = players.some(p => {
             let list = [];
             try {
@@ -175,43 +178,42 @@ function handleGameLobby(io, socket) {
             return;
         }
 
+        // ✅ 4. 준비 완료된 경우 → 카운트다운 시작
         if (allReady) {
-            // 이미 진행 중이면 무시
-            if (startCountdownMap.has(roomId)) return;
+            if (startCountdownMap.has(roomId)) {
+                console.log(`[READY] 카운트다운 이미 진행 중 → 무시`);
+                return;
+            }
 
             let secondsLeft = 5;
-
             const userIds = players.map(p => p.id);
             startPlayersMap.set(roomId, userIds);
+
+            console.log(`[READY] ${roomId} ▶ 게임 시작 카운트다운 시작`);
 
             const intervalId = setInterval(async () => {
                 const currentPlayers = await getRoomUserInfo(roomId);
                 const currentUserIds = currentPlayers.map(p => p.id);
 
-                // ✅ 사용자 변동 감지
-                const originalUserIds = startPlayersMap.get(roomId) || [];
-                /*
-                const isSame = (
-                    originalUserIds.length === currentUserIds.length &&
-                    originalUserIds.every(id => currentUserIds.includes(id))
-                );
-                */
-                const isSame = (
-                    originalUserIds.length === currentUserIds.length &&
-                    originalUserIds.slice().sort((a, b) => a - b).join() === currentUserIds.slice().sort((a, b) => a - b).join()
+                const isSameUsers = (
+                    userIds.length === currentUserIds.length &&
+                    userIds.slice().sort().join() === currentUserIds.slice().sort().join()
                 );
 
-                if (!isSame) {
+                const allReadyNow = currentPlayers.every(p => p.isReady);
+
+                if (!isSameUsers || !allReadyNow) {
                     clearInterval(intervalId);
                     startCountdownMap.delete(roomId);
                     startPlayersMap.delete(roomId);
                     io.to(roomId).emit("chat:room:message", {
                         roomId,
                         user: { id: "system", nickname: "시스템" },
-                        message: "❌ 플레이어 목록이 변경되어 게임 시작이 취소되었습니다.",
+                        message: "❌ 준비 상태나 플레이어 변경으로 인해 게임 시작이 취소되었습니다.",
                         type: "system",
                         timestamp: Date.now(),
                     });
+                    console.log(`[READY] ${roomId} ▶ 카운트다운 취소됨`);
                     return;
                 }
 
@@ -219,8 +221,13 @@ function handleGameLobby(io, socket) {
                     clearInterval(intervalId);
                     startCountdownMap.delete(roomId);
                     startPlayersMap.delete(roomId);
+                    // turnOrder 지정
+                    const orderedPlayers = await assignTurnOrder(roomId);
                     await updateRoomStatus(roomId, "IN_PROGRESS");
                     io.to(roomId).emit("game-start");
+                    console.log(`[READY] ${roomId} ▶ 게임 시작`);
+                    console.log("[READY] 턴 순서:", orderedPlayers.map(p => ({ id: p.id, turnOrder: p.turnOrder })));
+
                     return;
                 }
 
@@ -236,9 +243,12 @@ function handleGameLobby(io, socket) {
             }, 1000);
 
             startCountdownMap.set(roomId, intervalId);
-        } else {
-            // 누군가 Ready를 풀거나 나갔다면
+        }
+
+        // ✅ 5. 준비 취소 → 카운트다운 중단
+        else {
             if (startCountdownMap.has(roomId)) {
+                console.log(`[READY] ${roomId} ▶ 준비 취소 감지 → 카운트다운 중단`);
                 clearInterval(startCountdownMap.get(roomId));
                 startCountdownMap.delete(roomId);
                 startPlayersMap.delete(roomId);

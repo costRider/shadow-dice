@@ -249,12 +249,16 @@ export function getRoomUserInfo(roomId) {
   // 1) room_players + users JOIN, 사용자가 선택한 캐릭터 정보까지 가져오기
   const rows = db.prepare(
     `
-    SELECT
-      rp.userId                AS id,
-      u.nickname               AS nickname,
-      rp.isReady               AS isReady,
-      rp.selectedCharacters    AS selectedCharacters,
-      rp.team                   AS team
+SELECT
+  rp.userId AS id,
+  u.nickname AS nickname,
+  rp.isReady AS isReady,
+  rp.selectedCharacters AS selectedCharacters,
+  rp.team AS team,
+  u.avatar_code AS avatar_code,
+  u.avatar_gender AS avatar_gender,
+  u.expression AS expression,
+  u.exp_number AS exp_number
     FROM room_players rp
       JOIN users u ON rp.userId = u.id
     WHERE rp.roomId = ?
@@ -327,6 +331,32 @@ export function setPlayerTeam(roomId, userId, team) {
   ).run(team, roomId, userId);
 }
 
+// 특정 방의 플레이어들에게 turn_order를 무작위로 부여
+export function assignTurnOrder(roomId) {
+  const players = getRoomUserInfo(roomId); // 이건 기존 함수라고 가정
+
+  const shuffled = [...players].sort(() => Math.random() - 0.5);
+
+  const updateStmt = db.prepare(`UPDATE room_players SET turn_order = ? WHERE roomId = ? AND userId = ?`);
+  shuffled.forEach((player, index) => {
+    updateStmt.run(index, roomId, player.id);
+  });
+
+  return shuffled.map((p, i) => ({ ...p, turnOrder: i }));
+}
+
+// roomModel.js 예시
+export function getRoomUserInfoWithTurnOrder(roomId) {
+  const stmt = db.prepare(`
+        SELECT u.id, u.nickname, u.avatar_gender, u.avatar_code, 
+        rp.turn_order, rp.isReady, rp.selectedCharacters, rp.team
+        FROM room_players rp
+        JOIN users u ON u.id = rp.userId
+        WHERE rp.roomId = ?
+        ORDER BY rp.turn_order ASC
+    `);
+  return stmt.all(roomId);
+}
 
 //사용자 ID로 룸 정보 get
 export function getRoomByUserId(userId) {
